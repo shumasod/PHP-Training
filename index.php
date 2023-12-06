@@ -1,5 +1,5 @@
 <?php
-$title='手数をおかけしますが';
+$title='お勉強サイト';
 
 ob_start();
 require 'header.php';
