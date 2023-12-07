@@ -7,7 +7,12 @@ $errors = [];
 if(empty($request['your_name'])|| 20<mb<strlen($request['your_name']))){
     $errors[] = '氏名は必須です.20文字以内で入力してください。';
 }
-
+if(!iseset($request['gender'])){
+    if(!isset($errors[] = `「性別」は必須です.';
+    }
+if(empty($request['age'])){
+   $error[]= '「年齢」は必須です。';
+    
     if(empty($request['contact'])|| 20<mb<strlen($request['contact']))){
     $errors[] = 'お問い合わせ内容は必須です.200文字以内で入力してください。';
 }
