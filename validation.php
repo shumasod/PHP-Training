@@ -16,4 +16,8 @@ return $errors;
 
 }
 
+if(empty($request['caution'])){
+    $errors[]= '「注意事項をご確認ください。';
+}
+
 ?>
