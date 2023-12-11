@@ -1,12 +1,10 @@
 <?php
-
 session_start();
-
 header('X-FRAME-OPTIONS:DENY');
 
-if (!empty($_SESSION)) {
+if (!empty($_POST)) {
     echo '<pre>';
-    var_dump($_SESSION);
+    var_dump($_POST);
     echo '</pre>';
 }
 
@@ -22,7 +20,6 @@ if (!empty($_POST['btn_confirm'])){
 if (!empty($_POST['btn_submit'])){
     $pageFlag = 2;
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -30,6 +27,43 @@ if (!empty($_POST['btn_submit'])){
 <head>
     <meta charset="UTF-8">
     <title>Your Title Here</title>
+    <style>
+        /* フォームのスタイル */
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* 各項目のスタイル */
+        label {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            box-sizing: border-box;
+        }
+
+        input[type="checkbox"] {
+            width: auto; /* チェックボックスの場合、幅を自動にして元のサイズを維持 */
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
 
@@ -38,7 +72,7 @@ if (!empty($_POST['btn_submit'])){
 <?php endif; ?>
 
 <?php if ($pageFlag === 1): ?>
-    <?php if ($_POST['csrf'] === $_SESSION['csrfToken']): ?>
+    <?php if (isset($_POST['csrf']) && $_POST['csrf'] === $_SESSION['csrfToken']): ?>
         <form method="POST" action="input.php">
             氏名: <?php echo h($_POST['your_name']); ?><br>
             メールアドレス: <?php echo h($_POST['email']); ?><br>
@@ -62,7 +96,7 @@ if (!empty($_POST['btn_submit'])){
 <?php endif; ?>
 
 <?php if ($pageFlag === 2): ?>
-    <?php if ($_POST['csrf'] === $_SESSION['csrfToken']): ?>
+    <?php if (isset($_POST['csrf']) && $_POST['csrf'] === $_SESSION['csrfToken']): ?>
         送信が完了しました。<br>
         <?php unset($_SESSION['csrfToken']); ?>
     <?php endif; ?>
@@ -104,7 +138,6 @@ if (!empty($_POST['btn_submit'])){
     <input type="submit" name="btn_confirm" value="確認する">
     <input type="hidden" name="csrf" value="<?php echo $token; ?>">
 </form>
-
 
 </body>
 </html>
