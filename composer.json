@@ -1,0 +1,17 @@
+{
+    "name": "user/composertest",
+    "autoload": {
+        "psr-4": {
+            "User\\Composertest\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "infra-people",
+            "email": "infra.dev.centermobile@gmail.com"
+        }
+    ],
+    "require": {
+        "nesbot/carbon": "^2.72"
+    }
+}
