@@ -27,7 +27,7 @@ class BaseProduct {
 // 子クラス
 class Product extends BaseProduct {
 
-    // アクセス修飾子、private, protected(自分・継承したクラス), public
+    // アクセス修飾子、private, protected, public(自分・継承したクラス), 
 
     // 変数
     private $product = '';
