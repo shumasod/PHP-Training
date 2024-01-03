@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ポートフォリオ</title>
+</head>
+<body>
+    <header>
+        <h1>ポートフォリオ</h1>
+    </header>
+    <main>
+        <section>
+            <h2>自己紹介</h2>
+            <p>
+                私は、[名前]です。[年齢]歳で、[職業]をしています。
+            </p>
+            <p>
+                [趣味]や[特技]など、自己PRを記載します。
+            </p>
+        </section>
+        <section>
+            <h2>スキル</h2>
+            <ul>
+                <li>PHP</li>
+                <li>Laravel</li>
+                <li>MySQL</li>
+                <li>HTML/CSS</li>
+                <li>JavaScript</li>
+            </ul>
+            <p>
+                使用している技術やスキルを記載します。
+            </p>
+        </section>
+        <section>
+            <h2>作品</h2>
+            <ul>
+                <li>
+                    <a href="[作品1のURL]">作品1</a>
+                    <p>作品1の説明</p>
+                </li>
+                <li>
+                    <a href="[作品2のURL]">作品2</a>
+                    <p>作品2の説明</p>
+                </li>
+            </ul>
+            <p>
+                制作した作品を記載します。
+            </p>
+        </section>
+    </main>
+    <footer>
+        <p>Copyright &copy; [年] [名前] All Rights Reserved.</p>
+    </footer>
+</body>
+</html>
