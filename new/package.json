@@ -1,0 +1,13 @@
+{
+  "name": "self-introduction-site",
+  "version": "1.0.0",
+  "description": "自己紹介サイト",
+  "dependencies": {
+    "php": "^8.0",
+    "tailwindcss": "^2.2.19",
+    "node": "^16.13.2"
+  },
+  "scripts": {
+    "start": "php -S localhost:8000"
+  }
+}
