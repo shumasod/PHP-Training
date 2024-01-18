@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>自己紹介</title>
+  <link rel="stylesheet" href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css">
+</head>
+<body>
+  <div class="flex flex-col h-screen">
+    <header class="bg-gray-800 text-white py-4">
+      <h1 class="text-2xl font-bold">自己紹介</h1>
+    </header>
+    <main class="flex-grow">
+      <div class="flex flex-col justify-center items-center">
+        <img src="https://placekitten.com/640/480" class="rounded-full w-64 h-64" alt="プロフィール画像">
+        <h2 class="text-xl font-bold mb-4">名前</h2>
+        <p class="text-base">[あなたの名前]</p>
+        <h2 class="text-xl font-bold mb-4">自己紹介</h2>
+        <p class="text-base">[あなたの自己紹介文]</p>
+      </div>
+    </main>
+    <footer class="bg-gray-800 text-white py-4">
+      <p class="text-center">Copyright &copy; [あなたの名前] 2023</p>
+    </footer>
+  </div>
+</body>
+</html>
