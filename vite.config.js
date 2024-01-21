@@ -1,4 +1,5 @@
 // vite.config.js
+Laravel9.10用
 
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
