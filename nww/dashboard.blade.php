@@ -10,9 +10,12 @@
 </head>
 <body class="bg-gray-100 font-sans">
     <header class="bg-blue-500 p-4 text-white">
-        <div class="container mx-auto">
-            <h1 class="text-2xl font-semibold">あなたのダッシュボード</h1>
-        </div>
+        <body class="antialiased">
+            @auth
+                <p>
+                {{ Auth::user()-> name}}さんこんにちは。
+                </p>
+            @endauth
     </header>
 
     <main class="container mx-auto mt-8">
