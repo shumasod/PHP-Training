@@ -38,7 +38,7 @@ use App\Models\User;
 
 class TestController extends Controller
 {
-    private function test();{
+    pubilc function test();{
         $users = user::all();
         return view('test',compact('users'));
         }
