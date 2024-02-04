@@ -32,7 +32,7 @@ class CustomerController extends Controller
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Test; // この行を追加
+
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
