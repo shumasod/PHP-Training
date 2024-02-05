@@ -32,13 +32,17 @@ class CustomerController extends Controller
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Test; // この行を追加
+
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
 
 class TestController extends Controller
 {
+<<<<<<< HEAD
     pubilc  function test(); {
+=======
+    public function test();{ 
+>>>>>>> 2d7621099f058b089451b2e28d314f3b5c2daab8
         $users = user::all();
         return view('test',compact('users'));
         }
