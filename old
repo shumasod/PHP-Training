@@ -1,0 +1,35 @@
+<?php
+
+// old関数の簡易な実装
+function old($inputName) {
+    // フォームがPOSTリクエストで送信された場合
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // 入力データがセットされていればその値を返す
+        if (isset($_POST[$inputName])) {
+            return $_POST[$inputName];
+        }
+    }
+
+    // フォームがPOSTリクエストでない場合や、入力データがセットされていない場合は空文字を返す
+    return '';
+}
+
+// フォームがサブミットされたと仮定した例
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 入力データの取得
+    $username = old('username');
+    $email = old('email');
+    // 他の入力データも同様に取得
+
+    // 入力データのバリデーションや他の処理を行う
+
+    // ここで再表示するフォームがあると仮定し、old関数を使用して前回の入力値を表示
+    echo '<form method="post">';
+    echo 'Username: <input type="text" name="username" value="' . htmlspecialchars($username) . '"><br>';
+    echo 'Email: <input type="email" name="email" value="' . htmlspecialchars($email) . '"><br>';
+    // 他のフォーム要素も同様に表示
+    echo '<input type="submit" value="Submit">';
+    echo '</form>';
+}
+
+?>
