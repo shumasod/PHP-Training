@@ -49,23 +49,26 @@ public function test() {
     
 
     
-    
-        // Eloquent(エロクアント)
-        $values = Test::all();
+        <?php
 
-        $count = Test::count();
-
-        $first = Test::findOrFail(1);
-
-        $whereBBB = Test::where('text', '=', 'bbb')->get();
-
-        // クエリビルダ
-        $queryBuilder = DB::table('tests')->where('text', '=', 'bbb')
-        ->select('id', 'text')
-        ->first();
-
-        dd($values, $count, $first, $whereBBB, $queryBuilder);
-
-        return view('tests.test', compact('values'));
-    }
-}
+        namespace App\Http\Controllers;
+        
+        use Illuminate\Http\Request;
+        use Illuminate\Support\Facades\DB;
+        use App\Models\User;
+        use App\Models\Test; // 追加
+        
+        class TestController extends Controller
+        {
+            public function test() {
+                // クエリビルダ
+                $queryBuilder = DB::table('tests')->where('text', '=', 'bbb')
+                ->select('id', 'text')
+                ->first();
+        
+                dd($queryBuilder);
+        
+                return view('tests.test');
+            }
+        }
+        
