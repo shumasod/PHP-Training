@@ -1,5 +1,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File; // ファイル存在確認用
 
 class ImportSqlData extends Migration
 {
@@ -10,9 +11,21 @@ class ImportSqlData extends Migration
      */
     public function up()
     {
-        // テーブル作成のマイグレーションの後にSQLファイルをインポートする
+        // SQLファイルのパスを取得
         $filePath = storage_path('app/import.sql');
-        DB::unprepared(file_get_contents($filePath));
+
+        // ファイルの存在確認
+        if (!File::exists($filePath)) {
+            throw new \Exception("SQLファイルが見つかりません: " . $filePath);
+        }
+
+        // ファイルの内容を取得
+        $sql = File::get($filePath);
+
+        // トランザクションを使用してSQLを実行
+        DB::transaction(function () use ($sql) {
+            DB::unprepared($sql); // SQLの実行
+        });
     }
 
     /**
@@ -22,6 +35,8 @@ class ImportSqlData extends Migration
      */
     public function down()
     {
-        // ロールバック時の処理を記述する場合はここに追加します
+        // 何をロールバックするか定義する
+        // 例: インポートしたデータを削除するSQLを追加
+        // ここで対応するダウン用のSQLを定義するか、手動で処理するか判断
     }
 }
