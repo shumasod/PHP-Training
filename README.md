@@ -1,6 +1,6 @@
 # PHP-Training
 
-*PHPを勉強していく上で練習用
+## PHPを勉強していく上で練習用
 
 ##　使用するフレームワークは基本的にLaravel
 ##### Composerは使用
