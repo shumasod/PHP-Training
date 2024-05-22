@@ -1,4 +1,4 @@
-use App\Http\Requests\FormRequestTrait; // FormRequestTrait.php のパスに応じて変更してください
+use App\Http\Requests\FormRequestTrait;
 
 class StoreRequest extends FormRequest
 {
