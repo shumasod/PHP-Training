@@ -1,0 +1,32 @@
+<?php
+try {
+    $pdo = new PDO('mysql:host=your_host;dbname=your_db', 'your_user', 'your_password');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $email = 'example@example.com';  // 検索したいメールアドレスを設定
+    $stmt = $pdo->prepare('SELECT * FROM sims WHERE users_email = :email');
+    $stmt->bindParam(':email', $email);
+    $stmt->execute();
+    
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    print_r($results);
+} catch (PDOException $e) {
+    echo 'Connection failed: ' . $e->getMessage();
+}
+?>
+
+PDOインスタンスを作成:
+$pdo = new PDO('mysql:host=your_host;dbname=your_db', 'your_user', 'your_password');
+
+エラーモードを設定:
+$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+プレースホルダを使ったクエリの準備:
+$stmt = $pdo->prepare('SELECT * FROM sims WHERE users_email = :email');
+
+パラメータをバインドしてクエリを実行:
+$stmt->bindParam(':email', $email);
+$stmt->execute();
+
+結果を取得:
+$results = $stmt->fetchAll(PDO::FETCH_ASSOC);
