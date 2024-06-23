@@ -1,17 +1,15 @@
 # PHP-Training
 
-*PHPを勉強していく上で練習用
+## PHPを勉強していく上で練習用
 
-##　使用するフレームワークは基本的にLaravel１０
-
+##　使用するフレームワークは基本的にLaravel
 ##### Composerは使用
 ##### フロントはbladeで編集
 #### viteも使用（そのためのconfig.jsを設定シートを作成）
+#### tailwindで位置調整
 それをベースで学習
 
 
 
-/
 
-tailwindで位置調整
 
