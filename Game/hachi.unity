@@ -1,0 +1,124 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class HachikoGame3D : MonoBehaviour
+{
+    public CharacterController player;
+    public Transform cameraTransform;
+    public float moveSpeed = 5f;
+    public float mouseSensitivity = 2f;
+    public GameObject hachikoPrefab;
+    public Text uiText;
+    public GameObject winPanel;
+
+    private Vector3 playerVelocity;
+    private bool isGrounded;
+    private float cameraPitch = 0f;
+    private List<Vector3> locations;
+    private GameObject hachikoInstance;
+    private float gameTime = 300f; // 5 minutes
+
+    void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        InitializeLocations();
+        SpawnHachiko();
+        UpdateUIText();
+    }
+
+    void Update()
+    {
+        HandleMovement();
+        HandleMouseLook();
+        CheckForHachiko();
+        UpdateGameTime();
+    }
+
+    void InitializeLocations()
+    {
+        locations = new List<Vector3>
+        {
+            new Vector3(0, 0, 0),      // 渋谷駅前
+            new Vector3(50, 0, 30),    // センター街
+            new Vector3(-40, 0, 20),   // 宮益坂
+            new Vector3(10, 0, -40),   // ハチ公前広場
+            new Vector3(60, 0, -20)    // 道玄坂
+        };
+    }
+
+    void SpawnHachiko()
+    {
+        int randomIndex = Random.Range(0, locations.Count);
+        Vector3 spawnPosition = locations[randomIndex];
+        hachikoInstance = Instantiate(hachikoPrefab, spawnPosition, Quaternion.identity);
+    }
+
+    void HandleMovement()
+    {
+        isGrounded = player.isGrounded;
+        if (isGrounded && playerVelocity.y < 0)
+        {
+            playerVelocity.y = 0f;
+        }
+
+        Vector2 inputDir = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        inputDir.Normalize();
+
+        Vector3 move = (transform.right * inputDir.x + transform.forward * inputDir.y) * moveSpeed;
+        player.Move(move * Time.deltaTime);
+
+        playerVelocity.y += Physics.gravity.y * Time.deltaTime;
+        player.Move(playerVelocity * Time.deltaTime);
+    }
+
+    void HandleMouseLook()
+    {
+        Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+
+        cameraPitch -= mouseDelta.y * mouseSensitivity;
+        cameraPitch = Mathf.Clamp(cameraPitch, -90f, 90f);
+
+        cameraTransform.localEulerAngles = Vector3.right * cameraPitch;
+        transform.Rotate(Vector3.up * mouseDelta.x * mouseSensitivity);
+    }
+
+    void CheckForHachiko()
+    {
+        if (Vector3.Distance(player.transform.position, hachikoInstance.transform.position) < 2f)
+        {
+            WinGame();
+        }
+    }
+
+    void WinGame()
+    {
+        winPanel.SetActive(true);
+        Cursor.lockState = CursorLockMode.None;
+        Time.timeScale = 0f;
+    }
+
+    void UpdateGameTime()
+    {
+        gameTime -= Time.deltaTime;
+        if (gameTime <= 0)
+        {
+            LoseGame();
+        }
+        UpdateUIText();
+    }
+
+    void LoseGame()
+    {
+        uiText.text = "時間切れ！ハチ公を見つけられませんでした。";
+        Cursor.lockState = CursorLockMode.None;
+        Time.timeScale = 0f;
+    }
+
+    void UpdateUIText()
+    {
+        int minutes = Mathf.FloorToInt(gameTime / 60F);
+        int seconds = Mathf.FloorToInt(gameTime - minutes * 60);
+        uiText.text = string.Format("残り時間: {0:0}:{1:00}\n", minutes, seconds);
+    }
+}
