@@ -38,7 +38,7 @@ function checkCatch(&$game) {
 function playGame() {
     $game = initializeGame();
     
-    echo "ハチ公を捕まえるゲームへようこそ！\n";
+    echo "ハチを捕まえるゲームへようこそ！\n";
     echo "渋谷駅周辺でハチ公を探し、捕まえてください。\n";
 
     while (!$game['caught']) {
