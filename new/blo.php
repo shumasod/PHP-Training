@@ -10,8 +10,8 @@
 <body class="bg-gray-100 font-sans">
   <header class="bg-blue-500 p-4 text-white">
     <div class="container mx-auto">
-      <h1 class="text-2xl font-semibold">あなたのブログ</h1>
-      <p class="text-sm mt-2">キャッチフレーズやブログの説明文</p>
+      <h1 class="text-2xl font-semibold">ブログ</h1>
+      <p class="text-sm mt-2">キャッチフレーズアッシュ</p>
     </div>
   </header>
 
