@@ -6,6 +6,6 @@ class YourController extends Controller
 {
     public function store(YourRequestName $request)
     {
-        // リクエストが有効な場合の処理
+       
     }
 }
