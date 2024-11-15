@@ -1,5 +1,5 @@
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log; // 例外をログに記録するために必要
+use Illuminate\Support\Facades\Log; // 例外をログに記録する
 
 try {
     // トランザクションを開始

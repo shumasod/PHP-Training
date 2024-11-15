@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>あなたのブログ</title>
+  <title>ブログ</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="icon" href="<?php echo asset('images/macho-icon.ico'); ?>" type="image/x-icon">
 </head>
 <body class="bg-gray-100 font-sans">
   <header class="bg-blue-500 p-4 text-white">
     <div class="container mx-auto">
-      <h1 class="text-2xl font-semibold">あなたのブログ</h1>
-      <p class="text-sm mt-2">キャッチフレーズやブログの説明文</p>
+      <h1 class="text-2xl font-semibold">ブログ</h1>
+      <p class="text-sm mt-2">キャッチフレーズアッシュ</p>
     </div>
   </header>
 
