@@ -1,2 +1,4 @@
 php artisan queue:table
 php artisan migrate
+
+↑ケースバイケース
