@@ -1,0 +1,16 @@
+// config/dompdf.php
+return [
+    // デフォルトのフォントを指定
+    // ここ重要！日本語フォントを指定しないと死にます
+    'defaultFont' => 'ipag',
+    
+    // フォントの設定
+    'fonts' => [
+        'japanese' => [
+            'normal' => 'ipag.ttf',  // さっき配置したフォントを指定
+            'bold' => 'ipag.ttf',
+            'italic' => 'ipag.ttf',
+            'bold_italic' => 'ipag.ttf'
+        ]
+    ]
+];
