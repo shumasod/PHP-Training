@@ -1,0 +1,24 @@
+
+<?php
+// ==========================================
+// 1. var_dump() - 変数の詳細情報を出力
+// ==========================================
+function debug_with_var_dump() {
+    $user = [
+        'name' => '山田太郎',
+        'age' => 30,
+        'roles' => ['admin', 'editor']
+    ];
+    
+    echo "<pre>";
+    var_dump($user); // 型情報と値を出力
+    echo "</pre>";
+    
+    // 複数の変数を一度に確認することも可能
+    $a = 10;
+    $b = "こんにちは";
+    $c = null;
+    
+    echo "<pre>";
+    var_dump($a, $b, $c);
+    echo "</pre>";
