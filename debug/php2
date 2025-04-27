@@ -1,0 +1,19 @@
+// ==========================================
+// 2. print_r() - 見やすい形式で配列やオブジェクトを出力
+// ==========================================
+function debug_with_print_r() {
+    $user = [
+        'name' => '山田太郎',
+        'age' => 30,
+        'roles' => ['admin', 'editor']
+    ];
+    
+    echo "<pre>";
+    print_r($user); // var_dump()より読みやすいが型情報は含まれない
+    echo "</pre>";
+    
+    // 出力ではなく結果を変数に格納することも可能
+    $output = print_r($user, true);
+    $log_message = date('Y-m-d H:i:s') . ": " . $output;
+    // file_put_contents('debug.log', $log_message, FILE_APPEND);
+}
