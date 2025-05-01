@@ -1,16 +1,91 @@
+<?php
 // config/dompdf.php
+
 return [
-    // デフォルトのフォントを指定
-    // 日本語フォントを指定します。
-    'defaultFont' => 'ipag',
+    // DOMPDFの基本設定
+    'default_paper_size' => 'A4',
+    'default_paper_orientation' => 'portrait', // 'portrait'または'landscape'
+    'default_font' => 'ipag',
+    
+    // キャッシュ設定
+    'enable_font_subsetting' => true,
+    'enable_remote' => true,
+    'font_cache' => storage_path('fonts/'),
+    'font_dir' => storage_path('fonts/'),
+    'temp_dir' => sys_get_temp_dir(),
+    
+    // 日本語レンダリング関連設定
+    'enable_php' => false,
+    'enable_javascript' => true,
+    'enable_html5_parser' => true,
+    
+    // デバッグ設定 (本番環境ではfalseに設定)
+    'debug_png' => false,
+    'debug_layout' => false,
+    'debug_css' => false,
+    
+    // PDFのメタデータ設定
+    'pdf_metadata' => [
+        'title' => '',
+        'author' => '',
+        'subject' => '',
+        'keywords' => '',
+        'creator' => 'DOMPDF',
+        'creation_date' => date('Y-m-d H:i:s'),
+    ],
     
     // フォントの設定
     'fonts' => [
-        'japanese' => [
-            'normal' => 'ipag.ttf',  // さっき配置したフォントを指定
-            'bold' => 'ipag.ttf',
-            'italic' => 'ipag.ttf',
-            'bold_italic' => 'ipag.ttf'
+        // システムフォント設定
+        'sans-serif' => [
+            'normal' => 'sans-serif',
+            'bold' => 'sans-serif',
+            'italic' => 'sans-serif',
+            'bold_italic' => 'sans-serif'
+        ],
+        'serif' => [
+            'normal' => 'serif',
+            'bold' => 'serif-bold',
+            'italic' => 'serif-italic',
+            'bold_italic' => 'serif-bold-italic'
+        ],
+        // 日本語フォント設定
+        'ipag' => [
+            'normal' => 'ipag.ttf',  // 通常
+            'bold' => 'ipag.ttf',    // 太字（代替フォントがない場合は同じファイルを使用）
+            'italic' => 'ipag.ttf',  // 斜体（代替フォントがない場合は同じファイルを使用）
+            'bold_italic' => 'ipag.ttf' // 太字斜体（代替フォントがない場合は同じファイルを使用）
+        ],
+        // 日本語ゴシックフォント（オプション - 必要に応じて追加）
+        'ipagp' => [
+            'normal' => 'ipagp.ttf',
+            'bold' => 'ipagp.ttf',
+            'italic' => 'ipagp.ttf',
+            'bold_italic' => 'ipagp.ttf'
+        ],
+        // 日本語明朝フォント（オプション - 必要に応じて追加）
+        'ipam' => [
+            'normal' => 'ipam.ttf',
+            'bold' => 'ipam.ttf',
+            'italic' => 'ipam.ttf',
+            'bold_italic' => 'ipam.ttf'
         ]
-    ]
+    ],
+    
+    // フォントファミリー のエイリアス設定
+    'font_family_aliases' => [
+        'japanese' => 'ipag',
+        'gothic' => 'ipagp',
+        'mincho' => 'ipam',
+    ],
+    
+    // 文字コード設定
+    'charset_encoding' => 'UTF-8',
+    
+    // 文字化け対策のデフォルトエンコーディング設定
+    'default_encoding' => 'UTF-8',
+    
+    // 画像解像度
+    'dpi' => 96,
+    'img_dpi' => 96,
 ];
