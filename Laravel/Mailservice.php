@@ -3,9 +3,7 @@
                 $this->mailService->sendOptionCancelledMail(  // ← 正しいメソッド名
                     user: $user,
                     apply_option_ids: [],
-                    cancel_option_ids: [$inputs['option_id']]
-                );
-            } catch (\Exception $e) {
+                    cancel_option_ids: [$inputs['option_
                 // メール送信エラーは処理を継続（ユーザー体験を優先）
                 // エラーログは既存のcriticalErrorServiceで記録される
             }
