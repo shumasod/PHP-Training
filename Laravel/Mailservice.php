@@ -1,5 +1,4 @@
-if ($result) {
-            // メール送信（エラーハンドリング付き）
+
             try {
                 $this->mailService->sendOptionCancelledMail(  // ← 正しいメソッド名
                     user: $user,
