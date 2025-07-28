@@ -1,18 +1,29 @@
 if ($result) {
-    // メール送信（シンプル版）
-    try {
-        $this->mailService->sendOptionCancelledMail(
-            user: $user,
-            apply_option_ids: [],
-            cancel_option_ids: [$inputs['option_id']]
-        );
-    } catch (\Exception $e) {
-    
-    
-    }
+// メール送信（シンプル版）
+try {
+$this->mailService->sendOptionCancelledMail(
+user: $user,
+apply_option_ids: [],
+cancel_option_ids: [$inputs[‘option_id’]]
+);
+} catch (\Exception $e) {
+// エラーログを出力
+\Log::error(‘オプションキャンセルメール送信エラー’, [
+‘user_id’ => $user->id,
+‘option_id’ => $inputs[‘option_id’],
+‘error’ => $e->getMessage(),
+‘trace’ => $e->getTraceAsString()
+]);
 
-    return $this->redirectSuccess(
-        message: 'その他オプションキャンセルに成功しました。',
-        route: 'mypage.option.index'
-    );
+```
+    // メール送信に失敗してもキャンセル処理は成功として扱う
+    // 必要に応じてアラート通知や管理者への通知を行う
+}
+
+return $this->redirectSuccess(
+    message: 'その他オプションキャンセルに成功しました。',
+    route: 'mypage.option.index'
+);
+```
+
 }
