@@ -7,8 +7,8 @@ if ($result) {
             cancel_option_ids: [$inputs['option_id']]
         );
     } catch (\Exception $e) {
-        // メール送信エラーは処理を継続
-        // ログは既存のcriticalErrorServiceで対応
+    
+    
     }
 
     return $this->redirectSuccess(
