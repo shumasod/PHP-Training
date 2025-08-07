@@ -1,3 +1,49 @@
+<?php
+// ==========================================
+// デバッグ関数のサンプル集
+// ファイル名: debug_functions.php
+// ==========================================
+
+// 1. var_dump() - 変数の詳細情報を出力
+function debug_with_var_dump() {
+    $user = [
+        'name' => '山田太郎',
+        'age' => 30,
+        'roles' => ['admin', 'editor']
+    ];
+    
+    echo "<pre>";
+    var_dump($user); // 型情報と値を出力
+    echo "</pre>";
+    
+    // 複数の変数を一度に確認することも可能
+    $a = 10;
+    $b = "こんにちは";
+    $c = null;
+    
+    echo "<pre>";
+    var_dump($a, $b, $c);
+    echo "</pre>";
+}
+
+// 2. print_r() - 見やすい形式で配列やオブジェクトを出力
+function debug_with_print_r() {
+    $user = [
+        'name' => '山田太郎',
+        'age' => 30,
+        'roles' => ['admin', 'editor']
+    ];
+    
+    echo "<pre>";
+    print_r($user); // var_dump()より読みやすいが型情報は含まれない
+    echo "</pre>";
+    
+    // 出力ではなく結果を変数に格納することも可能
+    $output = print_r($user, true);
+    $log_message = date('Y-m-d H:i:s') . ": " . $output;
+    // file_put_contents('debug.log', $log_message, FILE_APPEND);
+}
+
 // ==========================================
 // 3. error_log() - サーバーログにメッセージを書き込む
 // ==========================================
@@ -321,6 +367,33 @@ function debug_error_handling_and_http() {
     
     // 元のエラーハンドラーに戻す
     restore_error_handler();
+}
+
+// 実行例
+if (isset($_GET['test'])) {
+    echo "<h2>var_dump()のテスト</h2>";
+    debug_with_var_dump();
+    
+    echo "<h2>print_r()のテスト</h2>";
+    debug_with_print_r();
+    
+    echo "<h2>error_log()のテスト</h2>";
+    debug_with_error_log();
+    
+    echo "<h2>カスタムデバッグ関数のテスト</h2>";
+    // use_custom_debug_function(); // 処理が停止するため、必要時にコメント解除
+    
+    echo "<h2>バックトレースのテスト</h2>";
+    debug_backtrace_example();
+    
+    echo "<h2>実行時間計測のテスト</h2>";
+    measure_execution_time();
+    
+    echo "<h2>メモリ使用量のテスト</h2>";
+    debug_memory_usage();
+    
+    echo "<h2>クラス情報のテスト</h2>";
+    debug_class_info();
 }
 
 // 各デバッグ機能のデモ実行（必要に応じてコメントアウト）
