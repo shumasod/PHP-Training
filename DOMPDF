@@ -1,5 +1,5 @@
 <?php
-// config/dompdf.php
+
 
 return [
     // DOMPDFの基本設定
