@@ -45,7 +45,7 @@
  	<h2>登録完了ページ</h2>
  	<div class="input-area">
 	 	<p>予定タイトル</p>
- 		<?php echo $_POST['todo_title'];?>
+ 		<?php echo htmlspecialchars($_POST['todo_title'] ?? '', ENT_QUOTES, 'UTF-8');?>
 	</div>
 </body>
 </html>
