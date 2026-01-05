@@ -312,17 +312,25 @@ class UserController {
     private function renderView(string $view, array $data = []): void {
         // 与えられた変数を抽出してビュー内で使えるようにする
         extract($data);
-        
+
+        // パストラバーサル対策: ディレクトリトラバーサル文字列を除去
+        $view = str_replace(['../', '..\\', '\\'], '', $view);
+        $view = ltrim($view, '/');
+
         // ビューファイルのパス
         $viewPath = 'views/' . $view . '.php';
-        
-        // ビューファイルの存在確認
-        if (!file_exists($viewPath)) {
+
+        // パスの正規化とバリデーション
+        $realViewPath = realpath($viewPath);
+        $realViewsDir = realpath('views');
+
+        // ビューファイルの存在確認とディレクトリ検証
+        if (!$realViewPath || !$realViewsDir || strpos($realViewPath, $realViewsDir) !== 0) {
             throw new Exception('ビューファイルが見つかりません: ' . $viewPath);
         }
-        
+
         // ビューの読み込み
-        require $viewPath;
+        require $realViewPath;
     }
     
     /**
