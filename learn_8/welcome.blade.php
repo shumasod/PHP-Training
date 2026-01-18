@@ -1,3 +1,9 @@
+{{--
+    Based on Laravel Framework welcome template
+    Original Copyright (c) Taylor Otwell
+    Licensed under the MIT License
+    @see https://github.com/laravel/framework
+--}}
 
 
 
