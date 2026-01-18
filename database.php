@@ -7,11 +7,12 @@
 // Customize your database connection and table schema here.
 // -----------------------------------------------------------------------------
 
+// セキュリティ向上のため、環境変数から認証情報を読み込む
 $databaseConfig = [
-    'host' => 'localhost',         // データベースのホスト名 (e.g., 'localhost' or '127.0.0.1')
-    'username' => 'your_username', // データベースのユーザー名
-    'password' => 'your_password', // データベースのパスワード
-    'dbname' => 'your_database',   // データベース名
+    'host' => getenv('DB_HOST') ?: 'localhost',         // データベースのホスト名 (e.g., 'localhost' or '127.0.0.1')
+    'username' => getenv('DB_USER') ?: 'your_username', // データベースのユーザー名
+    'password' => getenv('DB_PASSWORD') ?: '',          // データベースのパスワード (環境変数から取得)
+    'dbname' => getenv('DB_NAME') ?: 'your_database',   // データベース名
 ];
 
 $tableSchema = [

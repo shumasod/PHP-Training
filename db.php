@@ -1,10 +1,11 @@
 <?php
 function getPdoConnection(): PDO {
-    $host = 'localhost';
-    $port = '5432';
-    $dbname = 'your_database';
-    $user = 'your_user';
-    $password = 'your_password';
+    // セキュリティ向上のため、環境変数から認証情報を読み込む
+    $host = getenv('DB_HOST') ?: 'localhost';
+    $port = getenv('DB_PORT') ?: '5432';
+    $dbname = getenv('DB_NAME') ?: 'your_database';
+    $user = getenv('DB_USER') ?: 'your_user';
+    $password = getenv('DB_PASSWORD') ?: '';
 
     $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;";
     $options = [

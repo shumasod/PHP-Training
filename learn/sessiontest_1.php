@@ -1,4 +1,10 @@
 <?php
+// セキュアなセッション設定
+ini_set('session.cookie_httponly', 1);
+ini_set('session.cookie_secure', 1);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Strict');
+
 session_start();
 ?>
 
@@ -16,10 +22,11 @@ if (!isset($_SESSION['visited'])) {
     $visited++;
     $_SESSION['visited'] = $visited;
 
-    echo $_SESSION['visited'] . '回目の訪問です<br>';
+    // XSS対策: セッション値をエスケープして出力
+    echo htmlspecialchars($_SESSION['visited'], ENT_QUOTES, 'UTF-8') . '回目の訪問です<br>';
 
     if (isset($_SESSION['date'])) {
-        echo '前回訪問は' . $_SESSION['date'] . 'です';
+        echo '前回訪問は' . htmlspecialchars($_SESSION['date'], ENT_QUOTES, 'UTF-8') . 'です';
         $_SESSION['date'] = date('c');
     }
 

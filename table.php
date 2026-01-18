@@ -9,8 +9,26 @@ $table = $config['table'];
 $columns = $config['columns'];
 $orderBy = $config['order_by'] ?? '';
 
-// SQL動的生成
-$sql = "SELECT " . implode(', ', array_keys($columns)) . " FROM $table";
+// セキュリティ: テーブル名とカラム名のバリデーション
+// SQLインジェクション対策として、英数字とアンダースコアのみを許可
+if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+    throw new InvalidArgumentException('Invalid table name');
+}
+
+$columnKeys = array_keys($columns);
+foreach ($columnKeys as $col) {
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $col)) {
+        throw new InvalidArgumentException('Invalid column name');
+    }
+}
+
+// ORDER BY句のバリデーション
+if ($orderBy && !preg_match('/^[a-zA-Z0-9_]+(\s+(ASC|DESC))?$/i', $orderBy)) {
+    throw new InvalidArgumentException('Invalid order by clause');
+}
+
+// SQL動的生成（バリデーション済みの値を使用）
+$sql = "SELECT " . implode(', ', $columnKeys) . " FROM `$table`";
 if ($orderBy) {
     $sql .= " ORDER BY $orderBy";
 }

@@ -8,11 +8,12 @@ header('X-FRAME-OPTIONS:DENY');
 // スーパーグローバル変数　php 9種類
 // 連想配列
 
-if (!empty($_POST)) {
-    echo '<pre>';
-    var_dump($_POST);
-    echo '</pre>';
-}
+// デバッグ情報は本番環境では削除すること
+// if (!empty($_POST)) {
+//     echo '<pre>';
+//     var_dump($_POST);
+//     echo '</pre>';
+// }
 
 // ファンクション　string型変数
 function h($str)
@@ -52,6 +53,10 @@ if (!empty($_POST['btn_submit'])) {
 
     <?php if ($pageFlag === 1) : ?>
         <?php if ($_POST['csrf'] === $_SESSION['csrfToken']) : ?>
+            <?php
+            // セキュリティ: セッション固定攻撃対策としてセッションIDを再生成
+            session_regenerate_id(true);
+            ?>
             <form method="POST" action="input2.php">
                 <div class="container mt-5">
                     <div class="row justify-content-center">
@@ -143,6 +148,10 @@ if (!empty($_POST['btn_submit'])) {
 
     <?php if ($pageFlag === 2) : ?>
         <?php if ($_POST['csrf'] === $_SESSION['csrfToken']) : ?>
+            <?php
+            // セキュリティ: セッション固定攻撃対策としてセッションIDを再生成
+            session_regenerate_id(true);
+            ?>
             <div class="container mt-5">
                 <div class="row justify-content-center">
                     <div class="col-md-6">
@@ -201,7 +210,7 @@ if (!empty($_POST['btn_submit'])) {
 
                         <div class="form-group">
                             <label for="url">ホームページ</label>
-                            <input type="url" class="form-control" id="url" value="<?php echo !empty($_SESSION['url']) ? h($_SE['url']) : ''; ?>">
+                            <input type="url" class="form-control" id="url" value="<?php echo !empty($_SESSION['url']) ? h($_SESSION['url']) : ''; ?>">
                         </div>
 
                         <div class="form-group">
