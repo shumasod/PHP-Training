@@ -1,8 +1,9 @@
 <?php
 
+// セキュリティ向上のため、環境変数から認証情報を読み込む
 const DB_HOST = 'mysql:host=127.0.0.1;dbname=udemy_php;charset=utf8mb4';
-const DB_USER = 'php_user';
-const DB_PASSWORD = 'password123';
+const DB_USER = getenv('DB_USER') ?: 'php_user';
+const DB_PASSWORD = getenv('DB_PASSWORD') ?: '';
 
 // 例外処理 Exception
 try {
