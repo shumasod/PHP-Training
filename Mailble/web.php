@@ -1,1 +1,1 @@
-Route::post('/send-mail', [MailController::class, 'send']);
+Route::post('', [MailController::class, 'send']);
