@@ -11,9 +11,7 @@ use App\Models\Contact;
 
 class ContactFormController extends Controller
 {
-    /**
-     * お問い合わせフォームを表示
-     *
+
      * @return \Illuminate\Http\Response
      */
     public function index()
