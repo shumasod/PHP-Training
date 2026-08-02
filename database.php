@@ -82,8 +82,14 @@ function connectDatabase(array $config): ?mysqli
         $conn->set_charset('utf8mb4');
         return $conn;
     } catch (Exception $e) {
-        // エラーメッセージをHTMLに表示するためにグローバル変数に格納
-        $GLOBALS['errorMessage'] = $e->getMessage();
+        // 例外メッセージを画面に出さない。
+        //
+        // mysqli の接続例外には、ホスト名・ユーザー名・
+        // 「そのユーザーは存在しない / パスワードが違う」といった
+        // 認証の失敗理由まで含まれる。
+        // 詳細はログへ送り、画面には汎用メッセージだけを出す。
+        error_log('DB connection failed: ' . $e->getMessage());
+        $GLOBALS['errorMessage'] = 'データベースに接続できませんでした。設定を確認してください。';
         return null;
     }
 }
@@ -116,7 +122,10 @@ function createTableIfNotExists(mysqli $conn, array $schema): bool
         }
         return true;
     } catch (Exception $e) {
-        $GLOBALS['errorMessage'] = "Table operation failed: " . $e->getMessage();
+        // SQL の例外メッセージにはクエリ本文やテーブル定義が含まれるため、
+        // ログにのみ残す。
+        error_log('Table operation failed: ' . $e->getMessage());
+        $GLOBALS['errorMessage'] = 'テーブルの準備に失敗しました。';
         return false;
     }
 }
@@ -203,7 +212,8 @@ function fetchData(mysqli $conn, string $tableName): array
         $result = $conn->query($sql);
         return $result->fetch_all(MYSQLI_ASSOC);
     } catch (Exception $e) {
-        $GLOBALS['errorMessage'] = "Error fetching data: " . $e->getMessage();
+        error_log('Error fetching data: ' . $e->getMessage());
+        $GLOBALS['errorMessage'] = 'データの取得に失敗しました。';
         return [];
     }
 }
