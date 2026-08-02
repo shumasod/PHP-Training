@@ -24,9 +24,12 @@ if (!empty($_POST)) {
     echo '</pre>';
 }
 
-function h($str)
+function h(?string $str): string
 {
-    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+    // PHP 8.1 以降、htmlspecialchars() に null を渡すと Deprecated になる。
+    // ENT_SUBSTITUTE を足して、不正な UTF-8 バイト列は空文字ではなく
+    // 置換文字へ落とす（空文字になるとエスケープが素通りしたように見えるため）。
+    return htmlspecialchars($str ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // 入力、確認、完了　input.php, confirm.php, thanks.php
@@ -154,7 +157,7 @@ if (!empty($_POST['btn_submit'])) {
         <?php if (!empty($errors) && !empty($_POST['btn_confirm'])) : ?>
             <ul>
                 <?php foreach ($errors as $error) : ?>
-                    <li><?php echo $error; ?></li>
+                    <li><?php echo h($error); ?></li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
