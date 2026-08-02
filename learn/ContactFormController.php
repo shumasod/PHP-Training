@@ -11,7 +11,9 @@ use App\Models\Contact;
 
 class ContactFormController extends Controller
 {
-
+    /**
+     * お問い合わせ一覧画面を表示
+     *
      * @return \Illuminate\Http\Response
      */
     public function index()
@@ -200,26 +202,49 @@ class ContactFormController extends Controller
      */
     public function admin(Request $request)
     {
+        $validated = $request->validate([
+            'status' => 'nullable|in:pending,in_progress,completed',
+            'search' => 'nullable|string|max:100',
+        ]);
+
         $query = Contact::query();
 
         // ステータスでフィルタリング
-        if ($request->has('status') && $request->status !== '') {
-            $query->where('status', $request->status);
+        // 値は上のバリデーションで既知の 3 つに限定済み
+        if (!empty($validated['status'])) {
+            $query->where('status', $validated['status']);
         }
 
         // 検索
-        if ($request->has('search') && $request->search !== '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('email', 'like', '%' . $search . '%')
-                  ->orWhere('subject', 'like', '%' . $search . '%');
+        if (!empty($validated['search'])) {
+            $pattern = '%' . $this->escapeLike($validated['search']) . '%';
+            $query->where(function ($q) use ($pattern) {
+                $q->where('name', 'like', $pattern)
+                  ->orWhere('email', 'like', $pattern)
+                  ->orWhere('subject', 'like', $pattern);
             });
         }
 
         $contacts = $query->orderBy('created_at', 'desc')
-                         ->paginate(20);
+                         ->paginate(20)
+                         ->withQueryString();
 
         return view('contacts.admin', compact('contacts'));
+    }
+
+    /**
+     * LIKE のワイルドカードをエスケープする。
+     *
+     * バインドは SQL インジェクションを防ぐが、値の中の % と _ は
+     * ワイルドカードとして解釈されたままになる。
+     * search=% を送ると絞り込みが無効化されて全件が返り、
+     * %a%b%c%d%e%... のような入力はインデックスが効かず全表スキャンになる。
+     *
+     * @param  string  $value
+     * @return string
+     */
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $value);
     }
 }

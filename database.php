@@ -68,6 +68,52 @@ $tableSchema = [
 // -----------------------------------------------------------------------------
 
 /**
+ * テーブル名・カラム名として安全に使える文字列かを検証し、バッククォートで囲みます。
+ * Validates an identifier and wraps it in backticks.
+ *
+ * mysqli::real_escape_string() は識別子のエスケープには使えない。
+ * エスケープするのは ' " \ NUL などであって、識別子の区切り文字である
+ * バッククォートは対象外なので、
+ *
+ *     `t` (SELECT ...) -- `
+ *
+ * のような値を渡されるとクォートの外へ抜け出せてしまう。
+ * 識別子はバインドできないため、使ってよい文字を限定するしかない。
+ *
+ * @param string $identifier 検証対象のテーブル名またはカラム名
+ * @return string バッククォートで囲んだ識別子
+ * @throws InvalidArgumentException 使用できない文字が含まれる場合
+ */
+function quoteIdentifier(string $identifier): string
+{
+    if (!preg_match('/\A[A-Za-z_][A-Za-z0-9_]{0,63}\z/', $identifier)) {
+        throw new InvalidArgumentException("Invalid SQL identifier: {$identifier}");
+    }
+
+    return '`' . $identifier . '`';
+}
+
+/**
+ * カラムの型定義として安全な文字列かを検証します。
+ * Validates a column type definition.
+ *
+ * 型定義は CREATE TABLE へそのまま埋め込まれるため、
+ * ここを通る文字列は DDL の一部になる。想定される字句だけを許可する。
+ *
+ * @param string $type 検証対象の型定義 (e.g. 'VARCHAR(255) NOT NULL')
+ * @return string 検証済みの型定義
+ * @throws InvalidArgumentException 使用できない文字が含まれる場合
+ */
+function validateColumnType(string $type): string
+{
+    if (!preg_match('/\A[A-Za-z0-9_(),\' ]+\z/', $type)) {
+        throw new InvalidArgumentException("Invalid column type: {$type}");
+    }
+
+    return $type;
+}
+
+/**
  * データベースに接続し、接続オブジェクトを返します。
  * Connects to the database and returns the connection object.
  * @param array $config データベース設定
@@ -98,18 +144,18 @@ function connectDatabase(array $config): ?mysqli
 function createTableIfNotExists(mysqli $conn, array $schema): bool
 {
     try {
-        $tableName = $conn->real_escape_string($schema['tableName']);
+        $tableName = quoteIdentifier($schema['tableName']);
         $columnsSql = [];
         foreach ($schema['columns'] as $colName => $colDetails) {
-            $columnsSql[] = "`{$colName}` {$colDetails['type']}";
+            $columnsSql[] = quoteIdentifier($colName) . ' ' . validateColumnType($colDetails['type']);
         }
         $columnsSqlString = implode(', ', $columnsSql);
 
-        $sql = "CREATE TABLE IF NOT EXISTS `{$tableName}` ({$columnsSqlString}) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} ({$columnsSqlString}) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         $conn->query($sql);
 
         // テーブルが空の場合、サンプルデータを挿入
-        $result = $conn->query("SELECT COUNT(*) as count FROM `{$tableName}`");
+        $result = $conn->query("SELECT COUNT(*) as count FROM {$tableName}");
         $row = $result->fetch_assoc();
         if ($row['count'] == 0) {
             insertSampleData($conn, $schema);
@@ -128,14 +174,14 @@ function createTableIfNotExists(mysqli $conn, array $schema): bool
  * @param array $schema テーブルスキーマ定義
  */
 function insertSampleData(mysqli $conn, array $schema) {
-    $tableName = $conn->real_escape_string($schema['tableName']);
+    $tableName = quoteIdentifier($schema['tableName']);
 
     // 挿入するカラムのリストを作成 (AUTO_INCREMENTは除く)
     $columnNames = array_keys($schema['columns']);
     $insertColumns = array_filter($columnNames, function($colName) use ($schema) {
         return strpos($schema['columns'][$colName]['type'], 'AUTO_INCREMENT') === false;
     });
-    $columnsSqlString = '`' . implode('`, `', $insertColumns) . '`';
+    $columnsSqlString = implode(', ', array_map('quoteIdentifier', $insertColumns));
 
     // サンプルデータ
     $samples = [
@@ -146,7 +192,7 @@ function insertSampleData(mysqli $conn, array $schema) {
             'phone_number' => '06-1234-5678',
             'description' => '濃厚豚骨スープが自慢のラーメン店です。ホール・キッチンスタッフ募集中！',
             'website' => 'https://example.com/menyado',
-            'posted_date' => 'NOW()'
+            'posted_date' => date('Y-m-d H:i:s')
         ],
         [
             'store_name' => '株式会社クリエイティブデザイン',
@@ -155,7 +201,7 @@ function insertSampleData(mysqli $conn, array $schema) {
             'phone_number' => '06-8765-4321',
             'description' => '最新技術を使ったWebサイトを制作します。Webデザイナー・エンジニアを募集しています。',
             'website' => 'https://example.com/creative',
-            'posted_date' => 'NOW()'
+            'posted_date' => date('Y-m-d H:i:s')
         ],
         [
             'store_name' => '旅する本屋',
@@ -164,13 +210,13 @@ function insertSampleData(mysqli $conn, array $schema) {
             'phone_number' => '06-1122-3344',
             'description' => '世界中の珍しい本を取り揃えています。週末だけのアルバイト募集中。',
             'website' => 'https://example.com/bookstore',
-            'posted_date' => 'NOW()'
+            'posted_date' => date('Y-m-d H:i:s')
         ]
     ];
 
     // プリペアドステートメントの準備
     $placeholders = implode(', ', array_fill(0, count($insertColumns), '?'));
-    $stmt = $conn->prepare("INSERT INTO `{$tableName}` ({$columnsSqlString}) VALUES ({$placeholders})");
+    $stmt = $conn->prepare("INSERT INTO {$tableName} ({$columnsSqlString}) VALUES ({$placeholders})");
 
     // 各データをバインドして実行
     foreach ($samples as $sample) {
@@ -198,8 +244,8 @@ function insertSampleData(mysqli $conn, array $schema) {
 function fetchData(mysqli $conn, string $tableName): array
 {
     try {
-        $tableName = $conn->real_escape_string($tableName);
-        $sql = "SELECT * FROM `{$tableName}` ORDER BY `posted_date` DESC";
+        $tableName = quoteIdentifier($tableName);
+        $sql = "SELECT * FROM {$tableName} ORDER BY `posted_date` DESC";
         $result = $conn->query($sql);
         return $result->fetch_all(MYSQLI_ASSOC);
     } catch (Exception $e) {
