@@ -1,3 +1,5 @@
+<?php
+
 // Factory定義（database/factories/UserFactory.php）
 namespace Database\Factories;
 

@@ -1,3 +1,5 @@
+<?php
+
 class DatabaseConnection {
     private static $instance = null;
     private $connection;
@@ -21,8 +23,14 @@ class DatabaseConnection {
     // クローンを禁止
     private function __clone() {}
 
-    // シリアル化を禁止
-    private function __wakeup() {}
+    // シリアル化からの復元を禁止
+    // __wakeup() は PHP 8 以降 public 以外だと Warning になる。
+    // private にしても unserialize() は呼び出しを試みるため、
+    // 例外を投げて singleton の複製を確実に防ぐ。
+    public function __wakeup()
+    {
+        throw new \LogicException('Cannot unserialize a singleton.');
+    }
 }
 
 // 使用例
