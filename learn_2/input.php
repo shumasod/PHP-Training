@@ -21,6 +21,40 @@ function h($str)
     return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * CSRF トークンを検証する。
+ *
+ * 修正前は次のように書かれていた。
+ *
+ *     if ($_POST['csrf'] === $_SESSION['csrfToken'])
+ *
+ * この比較には 2 つの問題がある。
+ *
+ * 1. トークン検証を素通りできる
+ *    どちらのキーも未定義だと、PHP 8 では Warning が出たうえで
+ *    両辺とも null になり、null === null が true になる。
+ *    つまりセッションにトークンが無い状態で、csrf を一切含まない
+ *    POST を送ると検証を通過してしまう。
+ *
+ * 2. タイミング攻撃に対して安全でない
+ *    === は最初に異なるバイトが見つかった時点で false を返すため、
+ *    比較にかかる時間からトークンを 1 バイトずつ推測できる。
+ *    hash_equals() は長さに比例した一定時間で比較する。
+ */
+function verifyCsrfToken(): bool
+{
+    $sessionToken = $_SESSION['csrfToken'] ?? '';
+    $postedToken  = $_POST['csrf'] ?? '';
+
+    // 空同士が一致してしまわないよう、実在することを先に確認する。
+    if (!is_string($sessionToken) || $sessionToken === ''
+        || !is_string($postedToken) || $postedToken === '') {
+        return false;
+    }
+
+    return hash_equals($sessionToken, $postedToken);
+}
+
 // 入力、確認、完了　input.php, confirm.php, thanks.php
 // CSRF 偽物のinput.php→悪意のあるページ
 // input.php
@@ -52,7 +86,7 @@ if (!empty($_POST['btn_submit'])) {
 <body>
 
     <?php if ($pageFlag === 1) : ?>
-        <?php if ($_POST['csrf'] === $_SESSION['csrfToken']) : ?>
+        <?php if (verifyCsrfToken()) : ?>
             <?php
             // セキュリティ: セッション固定攻撃対策としてセッションIDを再生成
             session_regenerate_id(true);
@@ -134,7 +168,7 @@ if (!empty($_POST['btn_submit'])) {
         <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($pageFlag === 1 && isset($_POST['csrf']) && $_POST['csrf'] === $_SESSION['csrfToken']) : ?>
+    <?php if ($pageFlag === 1 && verifyCsrfToken()) : ?>
         <form method="POST" action="input2.php">
             <?php if (!empty($_SESSION)) : ?>
                 <pre>
@@ -147,7 +181,7 @@ if (!empty($_POST['btn_submit'])) {
 
 
     <?php if ($pageFlag === 2) : ?>
-        <?php if ($_POST['csrf'] === $_SESSION['csrfToken']) : ?>
+        <?php if (verifyCsrfToken()) : ?>
             <?php
             // セキュリティ: セッション固定攻撃対策としてセッションIDを再生成
             session_regenerate_id(true);
