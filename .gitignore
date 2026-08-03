@@ -1,5 +1,23 @@
 # 環境変数ファイル（機密情報を含む）
+# .env* を広めに拾い、サンプルだけを除外する。
+# 元は `.env` のみだったため、.env.local や .env.production は
+# コミットできてしまう状態だった。
 .env
+.env.*
+!.env.example
+!*.env.example
+
+# 認証情報・鍵ファイル
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+credentials.json
+service-account*.json
+*.sqlite
+*.sqlite3
 
 # IDE設定
 .idea/
@@ -23,4 +41,15 @@ cache/
 # Composerの依存関係
 /vendor/
 composer.phar
-composer.lock
+
+# 注意: composer.lock はコミットする。
+# アプリケーションでは、全員と本番環境が同じバージョンの依存を使うために
+# lock ファイルをリポジトリへ含めるのが公式の推奨。
+# 除外すると、インストールのタイミング次第で脆弱性が残ったままの
+# バージョンが入ることがある。
+# (ライブラリを配布する場合のみ除外してよい)
+
+# Node.js
+/node_modules/
+npm-debug.log*
+yarn-error.log*
