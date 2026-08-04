@@ -1,23 +1,40 @@
 <?php
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = $_POST["name"];
-    $email = $_POST["email"];
-    $gender = isset($_POST["gender"]) ? $_POST["gender"] : '';
-    $homepage = $_POST["homepage"];
-    $message = $_POST["message"];
+
+declare(strict_types=1);
+
+/**
+ * HTML エスケープ。
+ *
+ * 画面へ出す値は必ずこれを通す。ENT_QUOTES で属性値内のシングル/ダブル
+ * クォートも潰し、ENT_SUBSTITUTE で不正なバイト列を捨てる
+ * （不正な UTF-8 を残すとブラウザ側の解釈次第でフィルタをすり抜ける）。
+ */
+function e(?string $value): string
+{
+    return htmlspecialchars($value ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name     = (string) ($_POST['name'] ?? '');
+    $email    = (string) ($_POST['email'] ?? '');
+    $gender   = (string) ($_POST['gender'] ?? '');
+    $homepage = (string) ($_POST['homepage'] ?? '');
+    $message  = (string) ($_POST['message'] ?? '');
 
     // ここでデータベースに保存したり、メール送信したり、適切な処理を行います。
 
     // 仮の例として、フォームデータを表示
-    echo "<h2>お問い合わせ内容</h2>";
-    echo "<p><strong>お名前:</strong> $name</p>";
-    echo "<p><strong>メールアドレス:</strong> $email</p>";
-    echo "<p><strong>性別:</strong> $gender</p>";
-    echo "<p><strong>ホームページURL:</strong> $homepage</p>";
-    echo "<p><strong>お問い合わせ内容:</strong><br> $message</p>";
+    // 入力値をそのまま埋め込むと反射型 XSS になるため、必ずエスケープする。
+    echo '<h2>お問い合わせ内容</h2>';
+    echo '<p><strong>お名前:</strong> ' . e($name) . '</p>';
+    echo '<p><strong>メールアドレス:</strong> ' . e($email) . '</p>';
+    echo '<p><strong>性別:</strong> ' . e($gender) . '</p>';
+    echo '<p><strong>ホームページURL:</strong> ' . e($homepage) . '</p>';
+    // 改行のみ <br> に変換し、それ以外はエスケープ済みの文字列を出す。
+    echo '<p><strong>お問い合わせ内容:</strong><br> ' . nl2br(e($message)) . '</p>';
 } else {
     // POST メソッド以外でアクセスされた場合のエラーハンドリング
-    echo "このページには直接アクセスできません。";
+    echo 'このページには直接アクセスできません。';
 }
 ?>
 

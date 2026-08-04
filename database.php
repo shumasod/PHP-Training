@@ -264,6 +264,30 @@ function fetchData(mysqli $conn, string $tableName): array
     }
 }
 
+/**
+ * href に埋め込んでよい URL かどうかを判定します。
+ * Checks whether a URL is safe to place in an href attribute.
+ *
+ * htmlspecialchars() は `javascript:alert(1)` のような文字列を
+ * そのまま通してしまう（危険な文字を含まないため）。
+ * href に入ると値がクリック時に URL として解釈されるので、
+ * スキームを http/https に限定する必要がある。
+ *
+ * @param string $url 判定対象の URL
+ * @return bool http または https の絶対 URL であれば true
+ */
+function isSafeUrl(string $url): bool
+{
+    $url = trim($url);
+    if ($url === '') {
+        return false;
+    }
+
+    $scheme = parse_url($url, PHP_URL_SCHEME);
+
+    return is_string($scheme) && in_array(strtolower($scheme), ['http', 'https'], true);
+}
+
 // --- メイン処理 ---
 $errorMessage = null;
 $tableData = [];
@@ -376,8 +400,9 @@ if ($conn) {
                             <?php foreach ($tableSchema['columns'] as $colName => $colDetails): ?>
                                 <td>
                                     <?php
-                                        $cellValue = htmlspecialchars($row[$colName]);
-                                        if ($colName === 'website' && !empty($row[$colName])) {
+                                        $rawValue = (string) ($row[$colName] ?? '');
+                                        $cellValue = htmlspecialchars($rawValue, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                                        if ($colName === 'website' && isSafeUrl($rawValue)) {
                                             echo '<a href="' . $cellValue . '" target="_blank" rel="noopener noreferrer">' . $cellValue . '</a>';
                                         } else {
                                             echo $cellValue;
