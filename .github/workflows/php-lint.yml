@@ -1,0 +1,114 @@
+name: PHP Lint
+
+# このリポジトリには「1 ファイルに複数ファイル分のコードが連結されている」
+# 「<?php 開始タグが無い」といった、読み込んだ瞬間に落ちるファイルが
+# 繰り返し混入していた。php -l を CI で回して再発を防ぐ。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: php -l (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # 現行の安定版と、1 つ前のバージョン。
+        # 8.4 では暗黙の nullable 引数などが Deprecated になるため、
+        # 両方で確認しておく。
+        php-version: ['8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: none
+
+      - name: Lint all PHP files
+        run: |
+          set -uo pipefail
+
+          status=0
+          count=0
+
+          # Blade テンプレートは PHP の構文ではないディレクティブ
+          # (@extends, @section など) を含むため対象外にする。
+          while IFS= read -r -d '' file; do
+            count=$((count + 1))
+            if ! output=$(php -l "$file" 2>&1); then
+              echo "::error file=${file}::${output}"
+              status=1
+            fi
+          done < <(
+            find . \
+              -path ./.git -prune -o \
+              -path ./vendor -prune -o \
+              -path ./node_modules -prune -o \
+              -type f -name '*.php' ! -name '*.blade.php' -print0
+          )
+
+          echo "Checked ${count} PHP files."
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::PHP syntax errors found."
+          else
+            echo "All PHP files passed php -l."
+          fi
+
+          exit "$status"
+
+      - name: Check for missing <?php opening tags
+        run: |
+          set -uo pipefail
+
+          # 開始タグの無い .php ファイルは、Web サーバ経由でアクセスすると
+          # ソースコードがそのままレスポンスとして返る。
+          #
+          # HTML / Blade だけを含むテンプレートは開始タグが無くて正しいので、
+          # 「PHP のコードらしき記述があるのに開始タグが無い」ものだけを拾う。
+          status=0
+
+          while IFS= read -r -d '' file; do
+            if grep -q '<?php\|<?=' "$file"; then
+              continue
+            fi
+
+            # 最初の非空行が '<' か '@' で始まるものは HTML / Blade
+            # テンプレート。開始タグが無くて正しいので対象外。
+            # (JavaScript の function / class を PHP と誤検出しないため)
+            first_char=$(grep -m1 -v '^[[:space:]]*$' "$file" | cut -c1)
+            if [ "$first_char" = '<' ] || [ "$first_char" = '@' ]; then
+              continue
+            fi
+
+            # namespace / use / class / function など、
+            # PHP のコードでしか出てこない行があるか
+            if grep -qE '^\s*(namespace|use|declare|abstract|final|class|interface|trait|enum|function|public|private|protected)\s' "$file"; then
+              echo "::error file=${file}::Missing <?php opening tag; source would be served as plain text."
+              status=1
+            fi
+          done < <(
+            find . \
+              -path ./.git -prune -o \
+              -path ./vendor -prune -o \
+              -path ./node_modules -prune -o \
+              -type f -name '*.php' ! -name '*.blade.php' -print0
+          )
+
+          if [ "$status" -eq 0 ]; then
+            echo "No PHP files are missing their opening tag."
+          fi
+
+          exit "$status"

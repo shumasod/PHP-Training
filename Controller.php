@@ -69,9 +69,15 @@ class DatabaseOperationService
                     'data' => $data,
                     'where' => $where
                 ]);
+                // 例外メッセージに PDO のエラー文を連結しない。
+                // PDOException のメッセージにはクエリ本文やテーブル名が
+                // 含まれることがあり、この例外がそのまま画面や API の
+                // レスポンスへ出ると内部構造が漏れる。
+                // 詳細は直前の Log::error に残っており、
+                // 元の例外も $previous として保持しているので追跡できる。
                 throw new DatabaseOperationException(
-                    "データベース操作でエラーが発生しました: " . $e->getMessage(), 
-                    0, 
+                    "データベース操作でエラーが発生しました",
+                    0,
                     $e
                 );
             }
@@ -214,9 +220,10 @@ class DatabaseOperationService
                     continue;
                 }
                 
+                // 同上。PDO のエラー文は連結せず、$previous 経由で追跡する。
                 throw new DatabaseOperationException(
-                    "バッチ更新でエラーが発生しました: " . $e->getMessage(), 
-                    0, 
+                    "バッチ更新でエラーが発生しました",
+                    0,
                     $e
                 );
             }
