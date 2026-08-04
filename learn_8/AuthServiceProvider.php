@@ -22,11 +22,12 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('test', function (User $user) {
-            if($user->id === 1) {
-            return true;
-            }
-            return false;
+        // 注意: これは Gate の書き方を確認するためのサンプル。
+        // 「ID が 1 のユーザーだけ許可」というのは実運用では使えない。
+        // 権限は users.role や専用の権限テーブルで表現し、
+        // 主キーの値に意味を持たせないこと。
+        Gate::define('test', function (User $user): bool {
+            return $user->id === 1;
         });
     }
 }

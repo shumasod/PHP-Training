@@ -73,7 +73,7 @@ $data = $stmt->fetchAll();
         <?php foreach ($data as $row): ?>
             <tr>
                 <?php foreach ($columns as $key => $_): ?>
-                    <td><?= htmlspecialchars($row[$key]) ?></td>
+                    <td><?= htmlspecialchars((string) ($row[$key] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                 <?php endforeach; ?>
             </tr>
         <?php endforeach; ?>
