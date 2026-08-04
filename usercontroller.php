@@ -304,30 +304,71 @@ class UserController {
     }
     
     /**
+     * ビュー名として許可する形式
+     *
+     * 英数字・アンダースコア・ハイフンからなるセグメントをスラッシュで
+     * 繋いだものだけを受け付ける。'.' を一切許可しないので、
+     * '..' によるトラバーサルはこの時点で成立しない。
+     */
+    private const VIEW_NAME_PATTERN = '/\A[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)*\z/';
+
+    /**
+     * ビューディレクトリの絶対パスを返すメソッド
+     * @return string
+     * @throws RuntimeException ディレクトリが存在しない場合
+     */
+    private function viewsDirectory(): string {
+        // realpath('views') のような相対パスはカレントディレクトリに依存する。
+        // cron や別のエントリポイントから呼ばれると別の場所を指してしまうため、
+        // このファイルの位置を基準にする。
+        $dir = realpath(__DIR__ . '/views');
+
+        if ($dir === false) {
+            throw new RuntimeException('ビューディレクトリが見つかりません');
+        }
+
+        return $dir;
+    }
+
+    /**
      * ビューをレンダリングするメソッド
      * @param string $view 表示するビューのパス
      * @param array $data ビューに渡すデータ
      * @return void
+     * @throws InvalidArgumentException ビュー名が不正な場合
+     * @throws RuntimeException ビューファイルが存在しない場合
      */
     private function renderView(string $view, array $data = []): void {
-        // 与えられた変数を抽出してビュー内で使えるようにする
-        extract($data);
-
-        // パストラバーサル対策: ディレクトリトラバーサル文字列を除去
-        $view = str_replace(['../', '..\\', '\\'], '', $view);
-        $view = ltrim($view, '/');
-
-        // ビューファイルのパス
-        $viewPath = 'views/' . $view . '.php';
-
-        // パスの正規化とバリデーション
-        $realViewPath = realpath($viewPath);
-        $realViewsDir = realpath('views');
-
-        // ビューファイルの存在確認とディレクトリ検証
-        if (!$realViewPath || !$realViewsDir || strpos($realViewPath, $realViewsDir) !== 0) {
-            throw new Exception('ビューファイルが見つかりません: ' . $viewPath);
+        // ビュー名の検証。
+        //
+        // 修正前は str_replace(['../', '..\\', '\\'], '', $view) で
+        // トラバーサル文字列を「除去」していたが、これは 1 回しか走らないため
+        // '....//' が '../' に化けるなど、置換自体が新しい '../' を生む。
+        // 除去ではなく、許可する文字を限定して弾く。
+        if (!preg_match(self::VIEW_NAME_PATTERN, $view)) {
+            throw new InvalidArgumentException('不正なビュー名です');
         }
+
+        $viewsDir = $this->viewsDirectory();
+        $realViewPath = realpath($viewsDir . '/' . $view . '.php');
+
+        // ビューファイルの存在確認とディレクトリ検証。
+        //
+        // 修正前は strpos($realViewPath, $realViewsDir) !== 0 で判定していたが、
+        // これは前方一致なので views ディレクトリと同じ接頭辞を持つ別ディレクトリ
+        // (例: /app/views-backup/secret.php) が views 配下と判定されてしまう。
+        // 区切り文字まで含めて比較する。
+        if ($realViewPath === false || !str_starts_with($realViewPath, $viewsDir . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('ビューファイルが見つかりません');
+        }
+
+        // ビューへ渡す変数の展開。
+        //
+        // 修正前は extract($data) をメソッド冒頭で呼んでいたため、
+        // $data に 'view' が含まれていると引数の $view が上書きされ、
+        // その後のパス組み立てが呼び出し側の意図と食い違っていた。
+        // EXTR_SKIP で既存変数を保護し、パス確定後に展開する。
+        extract($data, EXTR_SKIP);
 
         // ビューの読み込み
         require $realViewPath;
@@ -368,7 +409,9 @@ class UserController {
 class ValidationException extends Exception {
     private $errors = [];
     
-    public function __construct(string $message, array $errors = [], int $code = 0, Throwable $previous = null) {
+    // PHP 8.4 以降、null デフォルト値による暗黙の nullable は Deprecated。
+    // 明示的に ?Throwable と書く必要がある。
+    public function __construct(string $message, array $errors = [], int $code = 0, ?Throwable $previous = null) {
         parent::__construct($message, $code, $previous);
         $this->errors = $errors;
     }
