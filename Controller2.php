@@ -1,3 +1,5 @@
+<?php
+
 use Illuminate\Support\Facades\DB;
 
 class YourController extends Controller
@@ -12,7 +14,9 @@ class YourController extends Controller
             DB::table('your_table')->update(['column' => 'value']);
 
             // もし何かしらのエラーが発生した場合、例外をスローしてトランザクションをロールバック
-            if (/* エラーが発生した場合の条件 */) {
+            // ※ 実際の条件に置き換えて使用する
+            $hasError = false;
+            if ($hasError) {
                 throw new \Exception("エラーが発生しました。トランザクションをロールバックします。");
             }
 

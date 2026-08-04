@@ -1,3 +1,5 @@
+<?php
+
 namespace Tests\Traits;
 
 trait UserTestHelpers
