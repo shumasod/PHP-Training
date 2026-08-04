@@ -31,13 +31,18 @@ if (!isset($_SESSION['visited'])) {
     }
 
     // setcookie("id", 'aaa')
-    echo `<pre>`;
+    //
+    // 注意: ここは元々 echo `<pre>`; と書かれていた。
+    // PHP のバッククォートは文字列ではなく shell_exec() と等価な実行演算子で、
+    // シェルに `<pre>` を渡していた（出力リダイレクトとして解釈される）。
+    // 文字列として出したいのでシングルクォートに直す。
+    echo '<pre>';
     var_dump($_SESSION);
-    echo `</pre>`;
+    echo '</pre>';
 
-    echo `<pre>`;
+    echo '<pre>';
     var_dump($_COOKIE);
-    echo `</pre>`;
+    echo '</pre>';
 
 }
 ?>
