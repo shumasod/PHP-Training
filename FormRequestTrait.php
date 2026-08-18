@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Validation\Rule;
+
 /**
  * フォームリクエスト用のユーティリティトレイト
  * 
@@ -55,7 +57,51 @@ trait FormRequestTrait
     {
         return [
             // すべての画面で共通して使用するルールをここに定義
-            'csrf_token' => ['required'],
+            //
+            // 修正前はここに 'csrf_token' => ['required'] があった。
+            // Laravel の CSRF トークンはフィールド名が _token で、
+            // 検証は VerifyCsrfToken ミドルウェアが行う。
+            // FormRequest 側で 'csrf_token' を必須にすると、
+            // そんなフィールドは送られてこないので
+            // すべてのリクエストがバリデーションエラーになる。
+        ];
+    }
+
+    /**
+     * 一意性を要求するメールアドレスのルール
+     *
+     * StoreUserRequest から呼ばれているが、修正前のトレイトには
+     * 定義が無く Call to undefined method で落ちていた。
+     *
+     * @return array<int, mixed>
+     */
+    protected function uniqueEmailRule()
+    {
+        return [
+            'required',
+            'string',
+            'email:rfc',
+            'max:255',
+            // 更新時は自分自身のレコードを重複判定から除外する
+            Rule::unique('users', 'email')->ignore($this->user()?->getKey()),
+        ];
+    }
+
+    /**
+     * 任意入力のメールアドレスのルール
+     *
+     * StoreEmailRequest から呼ばれているが、修正前のトレイトには
+     * 定義が無く Call to undefined method で落ちていた。
+     *
+     * @return array<int, string>
+     */
+    protected function nullableEmailRule()
+    {
+        return [
+            'nullable',
+            'string',
+            'email:rfc',
+            'max:255',
         ];
     }
 
