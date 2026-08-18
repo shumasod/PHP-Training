@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-require 'validation.php';
+require_once __DIR__ . '/../learn/validation.php';
 
 
 // var_dump(EnumAge::teenth->value);
