@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Logger.php';
+
 // ====================================================================
 // 4. InputValidator クラス（フェーズ3：予防システム）
 // ====================================================================
@@ -25,18 +27,38 @@ class InputValidator
     public static function validateUserId($userId, bool $allowNull = false): int
     {
         // null チェック
+        //
+        // 注意: $allowNull のとき 0 を返しているが、
+        // このクラスは他の経路で「0 以下は不正」として例外を投げる。
+        // つまり戻り値の 0 は「ID なし」を表す特別な値であり、
+        // 呼び出し側は 0 を実在の ID として扱ってはいけない。
         if (is_null($userId)) {
             if ($allowNull) {
                 return 0;
             }
             throw new InvalidArgumentException(self::$errorMessages['null']);
         }
-        
+
         // 空文字チェック
-        if ($userId === '' || $userId === '0') {
+        //
+        // 修正前は
+        //     if ($userId === '' || $userId === '0')
+        // と、文字列 '0' も「空」として扱っていた。
+        // '0' は空ではなく「0 という値」なので、返すべきメッセージは
+        // 「空です」ではなく「正の整数である必要があります」。
+        // 判定自体は validateIntUserId() の $userId <= 0 が行うので、
+        // ここでは '0' を特別扱いせず素通しし、型別処理へ渡す。
+        if ($userId === '') {
             throw new InvalidArgumentException(self::$errorMessages['empty']);
         }
-        
+
+        // bool は is_int() にも is_string() にも該当せず、
+        // 修正前は最後の invalid_format まで落ちていた。
+        // true が 1 に化けるのを防ぐため明示的に弾く。
+        if (is_bool($userId)) {
+            throw new InvalidArgumentException(self::$errorMessages['invalid_format']);
+        }
+
         // 型別処理
         if (is_string($userId)) {
             return self::validateStringUserId($userId);
@@ -105,7 +127,7 @@ class InputValidator
         try {
             return self::validateUserId($userId);
         } catch (Exception $e) {
-            log_message('warning', 'User ID validation failed: ' . $e->getMessage());
+            Logger::warning('User ID validation failed: ' . $e->getMessage());
             return null;
         }
     }
