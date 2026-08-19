@@ -1,12 +1,49 @@
 <?php
+
+declare(strict_types=1);
+
 // PHPカレンダーアプリ
 
 // タイムゾーンを設定
 date_default_timezone_set('Asia/Tokyo');
 
+// 表示できる年の範囲。
+// mktime() は範囲外の年月も黙って受け付けて別の日付に丸めるため、
+// 受け取った時点で明示的に絞る。
+const MIN_YEAR = 1970;
+const MAX_YEAR = 2100;
+
+/**
+ * クエリパラメータを整数として取り出し、範囲内に収める。
+ *
+ * 修正前は intval() を通すだけで範囲を見ていなかった。
+ * intval() は数値以外を 0 にするので、?month=xyz は month=0 になり、
+ * mktime(0, 0, 0, 0, 1, 0) が「1999年12月」を指す。
+ * その結果、見出しには「0年0月」と出ているのに
+ * 表示されるカレンダーは 1999年12月、という食い違いが起きていた。
+ *
+ *     year=2024 month=0   -> 見出し「2024年0月」  実際: 2023-12
+ *     year=2024 month=13  -> 見出し「2024年13月」 実際: 2025-01
+ *     year=abc  month=xyz -> 見出し「0年0月」     実際: 1999-12
+ */
+function query_int(string $key, int $default, int $min, int $max): int
+{
+    // filter_input(INPUT_GET, ...) ではなく $_GET を直接見る。
+    // filter_input() は「リクエスト時点の値」を読むため、
+    // $_GET へ代入しても反映されず、CLI では常に null を返す。
+    // テストしづらく、SAPI によって挙動が変わる。
+    $raw = filter_var($_GET[$key] ?? null, FILTER_VALIDATE_INT);
+
+    if ($raw === false) {
+        return $default;
+    }
+
+    return max($min, min($max, $raw));
+}
+
 // パラメータから年月を取得。指定がなければ現在の年月を使用
-$year = isset($_GET['year']) ? intval($_GET['year']) : date('Y');
-$month = isset($_GET['month']) ? intval($_GET['month']) : date('n');
+$year  = query_int('year', (int) date('Y'), MIN_YEAR, MAX_YEAR);
+$month = query_int('month', (int) date('n'), 1, 12);
 
 // 前月と翌月の計算
 $prev_month = $month - 1;
@@ -23,16 +60,18 @@ if ($next_month > 12) {
     $next_year++;
 }
 
+// 範囲の端では前月・翌月へのリンクを出さないようにするための判定
+$has_prev = $prev_year >= MIN_YEAR;
+$has_next = $next_year <= MAX_YEAR;
+
 // 月の初日と最終日を取得
 $first_day = mktime(0, 0, 0, $month, 1, $year);
 $last_day = mktime(0, 0, 0, $month + 1, 0, $year);
 
 // 月の日数と初日の曜日を取得
-$days_in_month = date('t', $first_day);
-$week_day_first = date('w', $first_day);
-
-// 月の名前を取得
-$month_name = date('F', $first_day);
+// date() は string を返すので、比較や計算に使う前に int にしておく。
+$days_in_month = (int) date('t', $first_day);
+$week_day_first = (int) date('w', $first_day);
 
 // HTMLヘッダー
 $html = '<!DOCTYPE html>
@@ -88,9 +127,9 @@ $html = '<!DOCTYPE html>
         <h1>' . $year . '年 ' . $month . '月</h1>
         
         <div class="month-nav">
-            <a href="?year=' . $prev_year . '&month=' . $prev_month . '">&lt; 前月</a>
-            <a href="?year=' . date('Y') . '&month=' . date('n') . '">今月</a>
-            <a href="?year=' . $next_year . '&month=' . $next_month . '">翌月 &gt;</a>
+            ' . ($has_prev ? '<a href="?year=' . $prev_year . '&amp;month=' . $prev_month . '">&lt; 前月</a>' : '<span></span>') . '
+            <a href="?year=' . date('Y') . '&amp;month=' . date('n') . '">今月</a>
+            ' . ($has_next ? '<a href="?year=' . $next_year . '&amp;month=' . $next_month . '">翌月 &gt;</a>' : '<span></span>') . '
         </div>
         
         <table>
