@@ -595,7 +595,14 @@ class HachikoGame {
             if (!is_array($data)) {
                 throw new GameException("データの解析に失敗しました");
             }
-            
+
+            // 修正前は $data['state'] の存在を確認せず渡していた。
+            // セーブファイルが壊れている / 古い形式だと
+            // Undefined array key のうえ fromArray(null) で TypeError になる。
+            if (!isset($data['state']) || !is_array($data['state'])) {
+                throw new GameException("セーブデータの形式が不正です");
+            }
+
             $this->state = GameState::fromArray($data['state']);
             $this->io->writeLine("✅ セーブデータを読み込みました");
             return true;
@@ -769,15 +776,30 @@ class GameFactory {
 // ========================================
 // メイン実行部
 // ========================================
+//
+// このファイルを require しただけでゲームが始まらないようガードする。
+//
+// 修正前はここがファイルスコープに置かれていたため、
+// クラスを使いたいだけの require でも対話ゲームが起動し、
+// 標準入力が無い環境では
+//
+//     🚨 予期しないエラーが発生しました: 入力の読み取りに失敗しました
+//
+// を出して exit(1) していた。テストから読み込むことができない。
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
+    try {
+        $io = new ConsoleIO();
+        $difficulty = GameFactory::selectDifficulty($io);
+        $game = GameFactory::create($difficulty);
+        $game->play();
 
-try {
-    $io = new ConsoleIO();
-    $difficulty = GameFactory::selectDifficulty($io);
-    $game = GameFactory::create($difficulty);
-    $game->play();
-    
-} catch (Exception $e) {
-    echo "🚨 予期しないエラーが発生しました: " . $e->getMessage() . PHP_EOL;
-    echo "スタックトレース: " . $e->getTraceAsString() . PHP_EOL;
-    exit(1);
+    } catch (Exception $e) {
+        // スタックトレースにはファイルパスと引数が含まれる。
+        // CLI ゲームなので致命的ではないが、既定では出さない。
+        echo "🚨 予期しないエラーが発生しました: " . $e->getMessage() . PHP_EOL;
+        if (getenv('HACHI_DEBUG') === '1') {
+            echo "スタックトレース: " . $e->getTraceAsString() . PHP_EOL;
+        }
+        exit(1);
+    }
 }
