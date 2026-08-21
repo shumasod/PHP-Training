@@ -1,14 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\FormRequestTrait;
 
 /**
  * ユーザー作成リクエストクラス
+ *
+ * 修正前は StoreRequest.php / StoreRequest1.php / StoreRequest2.php の
+ * 3 ファイルがすべて `class StoreRequest` を定義しており、同時に
+ * 読み込むと Fatal error になった。役割の分かる名前へ変更している。
+ *
+ * FormRequestTrait は同じ名前空間にあるので use は不要
+ * （修正前の `use App\Http\Requests\FormRequestTrait;` は
+ *   自分自身の名前空間を指す冗長な import だった）。
  */
-class StoreRequest extends FormRequest
+class StoreUserRequest extends FormRequest
 {
     use FormRequestTrait;
     
@@ -17,12 +27,18 @@ class StoreRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         // 認可ロジックを実装（例：ユーザー作成権限がある場合のみtrue）
-        return auth()->user()->can('create', User::class);
-        // または単純に全ユーザーに許可する場合
-        // return true;
+        //
+        // 修正前は auth()->user()->can(...) と書いていたため、
+        // 未ログインだと auth()->user() が null になり
+        //   Call to a member function can() on null
+        // で 500 になっていた。$this->user() は null 安全に扱う。
+        //
+        // また User がインポートされておらず、User::class は
+        // App\Http\Requests\User という存在しないクラスを指していた。
+        return $this->user()?->can('create', User::class) ?? false;
     }
     
     /**
@@ -30,7 +46,10 @@ class StoreRequest extends FormRequest
      *
      * @return array
      */
-    public function rules()
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
     {
         return [
             'email' => $this->uniqueEmailRule(), // FormRequestTraitのメソッドを呼び出す
@@ -45,7 +64,10 @@ class StoreRequest extends FormRequest
      *
      * @return array
      */
-    public function messages()
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
     {
         return [
             'email.required' => 'メールアドレスは必須項目です。',
@@ -65,7 +87,10 @@ class StoreRequest extends FormRequest
      *
      * @return array
      */
-    public function attributes()
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
     {
         return [
             'email' => 'メールアドレス',
@@ -81,11 +106,16 @@ class StoreRequest extends FormRequest
      *
      * @return void
      */
-    protected function prepareForValidation()
+    protected function prepareForValidation(): void
     {
         // 入力データの前処理を行う（例：メールアドレスを小文字に変換）
-        $this->merge([
-            'email' => strtolower($this->input('email')),
-        ]);
+        //
+        // email が送られてこないと strtolower(null) になり、
+        // PHP 8.1 以降 Deprecated になる。存在確認を入れる。
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => strtolower((string) $this->input('email')),
+            ]);
+        }
     }
 }

@@ -1,0 +1,47 @@
+# 改行コードの正規化
+#
+# 44 / 200 ファイルが CRLF、残りが LF という混在状態だった。
+# siglton.php にいたっては 1 ファイルの中で CRLF と LF が混ざっていた。
+#
+# 混在すると以下が起きる。
+#   - diff が「1 行も変えていないのに全行変更」になり、レビューできない
+#   - grep や sed のパターンが行末の \r に引っかかって外れる
+#   - ヒアドキュメントの終端識別子が \r 付きになり Parse error になる
+#
+# text=auto で「テキストと判定したファイルはリポジトリ内で LF に正規化」、
+# eol=lf でチェックアウト時も LF に統一する。
+* text=auto eol=lf
+
+# 明示的にテキストとして扱うもの
+*.php      text eol=lf
+*.md       text eol=lf
+*.json     text eol=lf
+*.js       text eol=lf
+*.jsx      text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.xml      text eol=lf
+*.sql      text eol=lf
+*.sh       text eol=lf
+.env*      text eol=lf
+.gitignore text eol=lf
+
+# バイナリとして扱い、改行変換をしないもの
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.eot    binary
+*.unity  binary
+
+# GitHub の言語判定から除外する（統計を歪めないため）
+learn_1/composer.lock linguist-generated=true
