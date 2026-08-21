@@ -15,6 +15,60 @@ class DatabaseOperationService
 {
     private const MAX_ATTEMPTS = 3;
     private const BASE_DELAY_SECONDS = 1;
+
+    /**
+     * ログに出してはいけないキー。
+     *
+     * このサービスは更新内容 ($data) をそのままログへ書いていた。
+     * users テーブルの更新に使えば、パスワードや残りのトークンが
+     * そのままログファイルへ流れる。
+     *
+     *     $service->updateWithDeadlockRetry('users', ['password' => $hash], ['id' => 1]);
+     *     -> Log::info(..., ['data' => ['password' => $hash]])
+     *
+     * ログは平文で長期間残り、閲覧できる範囲もアプリ本体より広いことが多い。
+     * Laravel の Handler が $dontFlash で同じ項目を除外しているのと同じ考え方。
+     */
+    private const REDACTED_KEYS = [
+        'password',
+        'password_confirmation',
+        'current_password',
+        'remember_token',
+        'api_token',
+        'access_token',
+        'refresh_token',
+        'secret',
+        'token',
+        'credit_card',
+        'card_number',
+        'cvv',
+    ];
+
+    /**
+     * ログ用に機微な値を伏せる。
+     *
+     * 値そのものは伏せつつキーは残す。
+     * 「password を更新しようとして失敗した」という事実は
+     * 調査に必要なので、キーまで消してしまうと役に立たない。
+     *
+     * @param array<string, mixed> $values
+     * @return array<string, mixed>
+     */
+    private function redact(array $values): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_string($key) && in_array(strtolower($key), self::REDACTED_KEYS, true)) {
+                $values[$key] = '[REDACTED]';
+                continue;
+            }
+
+            if (is_array($value)) {
+                $values[$key] = $this->redact($value);
+            }
+        }
+
+        return $values;
+    }
     
     /**
      * デッドロック対応付きでデータベース更新を実行
@@ -46,8 +100,8 @@ class DatabaseOperationService
                             'attempt' => $attempt,
                             'max_attempts' => $maxAttempts,
                             'error' => $e->getMessage(),
-                            'data' => $data,
-                            'where' => $where
+                            'data' => $this->redact($data),
+                            'where' => $this->redact($where)
                         ]);
                         throw new DatabaseOperationException(
                             "デッドロックが解決できませんでした（試行回数: {$maxAttempts}回）", 
@@ -66,8 +120,8 @@ class DatabaseOperationService
                     'table' => $table,
                     'error' => $e->getMessage(),
                     'code' => $e->getCode(),
-                    'data' => $data,
-                    'where' => $where
+                    'data' => $this->redact($data),
+                    'where' => $this->redact($where)
                 ]);
                 // 例外メッセージに PDO のエラー文を連結しない。
                 // PDOException のメッセージにはクエリ本文やテーブル名が
@@ -117,8 +171,8 @@ class DatabaseOperationService
             if ($result === 0) {
                 Log::info("更新対象のレコードが見つかりませんでした", [
                     'table' => $table,
-                    'data' => $data,
-                    'where' => $where
+                    'data' => $this->redact($data),
+                    'where' => $this->redact($where)
                 ]);
             }
             
@@ -127,8 +181,8 @@ class DatabaseOperationService
             Log::info("データベース更新が完了しました", [
                 'table' => $table,
                 'affected_rows' => $result,
-                'data' => $data,
-                'where' => $where
+                'data' => $this->redact($data),
+                'where' => $this->redact($where)
             ]);
             
             return $result;

@@ -65,4 +65,28 @@ foreach ($allData as $lineNo => $lineData) {
     echo h($lines[0]) . '<br>';
     echo h($lines[1]) . '<br>';
     echo h($lines[2]) . '<br>';
+$contactFile = '.contact.dat';
+
+$fileContents = file_get_contents($contactFile);
+
+// echo $fileContents;
+
+// ファイルに書き込む(上書き)
+// file_put_contents($contactFile, 'テストです');
+
+// $addText = 'テストです'.  "\n";
+
+// ファイルに書き込み（追記）
+// file_put_contents($contactFile,  $addText, FILE_APPEND);
+
+//配列 file, 区切る　
+
+$allData = file($contactFile);
+
+foreach($allData as $lineData){
+    $lines = explode(',', $lineData);
+    echo $lines[0]. '<br>';
+    echo $lines[1]. '<br>';
+    echo $lines[2]. '<br>';
+
 }
