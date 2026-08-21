@@ -1,0 +1,32 @@
+# https://editorconfig.org
+#
+# エディタ側の設定をそろえる。.gitattributes が「リポジトリに入る内容」を
+# 正規化するのに対し、こちらは「保存するときの挙動」を決める。
+# 両方ないと、正規化した直後にまた CRLF で保存されて元に戻る。
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# PSR-12 に合わせる
+[*.php]
+indent_size = 4
+
+[*.{js,jsx,ts,tsx,css,scss,json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+# Markdown は行末 2 スペースが改行を意味するため、除去しない
+trim_trailing_whitespace = false
+
+[*.{blade.php,html}]
+indent_size = 4
+
+[Makefile]
+indent_style = tab

@@ -28,7 +28,17 @@ class PostController extends Controller
     // CHAPTER7で追加
     public function index() {
         // postsテーブルのすべてのデータを取得
-        $posts=Post::all();
+        //
+        // with('user') を付けて投稿者をまとめて読み込む。
+        //
+        // ビュー (post/index.blade.php) は 1 件ごとに $post->user->name を
+        // 参照している。with が無いと、投稿 1 件につき users への
+        // SELECT が 1 回ずつ走る（N+1 問題）。
+        // 100 件表示すれば 1 + 100 = 101 クエリになる。
+        //
+        // Post::all() は全件をメモリに載せるので、
+        // 件数が増える前提なら paginate() に変えること。
+        $posts = Post::with('user')->latest()->get();
 
         // postsテーブルのログインユーザーのデータを取得
         // $posts=Post::where('user_id', auth()->id())->get();

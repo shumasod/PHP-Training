@@ -100,7 +100,7 @@ export DB_PASSWORD=your_secure_password
 
 - `Sample.php`: CSRF保護、入力サニタイズ
 - `SessionManager.php`: セキュアなセッション管理
-- `sequre_query`: プリペアドステートメント
+- `secure_query.php`: プリペアドステートメント
 - `database.php`: プリペアドステートメント（一部）
 
 これらのファイルをベストプラクティスの参考にしてください。

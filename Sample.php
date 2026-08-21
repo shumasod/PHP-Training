@@ -14,7 +14,22 @@ class MessageStorage {
     private string $storageFile;
 
     public function __construct() {
-        $this->storageFile = __DIR__ . '/messages.json';
+        // 保存先はドキュメントルートの外に置く。
+        //
+        // 修正前は __DIR__ . '/messages.json' で、このスクリプトと
+        // 同じ公開ディレクトリに置かれていた。つまり
+        //     https://example.com/messages.json
+        // を開くだけで全投稿が読める。しかも各レコードには投稿者の
+        // IP アドレスが入っているため、単なる書き込み内容の露出では
+        // 済まない。
+        //
+        // 公開ディレクトリ外に置けない環境では、最低限
+        // .htaccess や nginx の location で拒否すること。
+        $dataDir = getenv('GUESTBOOK_DATA_DIR') ?: dirname(__DIR__) . '/storage';
+        if (!is_dir($dataDir)) {
+            mkdir($dataDir, 0700, true);
+        }
+        $this->storageFile = $dataDir . '/messages.json';
         $this->loadMessages();
     }
 
@@ -33,13 +48,87 @@ class MessageStorage {
             'name' => $name,
             'message' => $message,
             'created_at' => date('Y-m-d H:i:s'),
-            'ip' => $_SERVER['REMOTE_ADDR']
+            // IP アドレスは個人情報にあたる。荒らし対策で残す場合でも
+            // 生値ではなくソルト付きハッシュにしておけば、
+            // 「同一人物かどうか」の判定はできる。
+            'ip_hash' => hash_hmac('sha256', $_SERVER['REMOTE_ADDR'] ?? '', self::ipHashKey()),
         ];
 
-        array_unshift($this->messages, $newMessage);
-        $this->messages = array_slice($this->messages, 0, MAX_MESSAGES);
+        // 読み込み → 追加 → 書き込みを排他ロックの中で行う。
+        //
+        // 修正前はコンストラクタで読んだ $this->messages に追記して
+        // 書き戻していた。2 人が同時に投稿すると、後から書いた側が
+        // 先に書かれた投稿を含まない配列で丸ごと上書きするため、
+        // 投稿が黙って消える。
+        $handle = fopen($this->storageFile, 'c+');
+        if ($handle === false) {
+            return false;
+        }
 
-        return file_put_contents($this->storageFile, json_encode($this->messages)) !== false;
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                return false;
+            }
+
+            $content = stream_get_contents($handle);
+            $messages = $content !== false && $content !== ''
+                ? (json_decode($content, true) ?? [])
+                : [];
+
+            array_unshift($messages, $newMessage);
+            $messages = array_slice($messages, 0, MAX_MESSAGES);
+
+            $json = json_encode($messages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if ($json === false) {
+                return false;
+            }
+
+            rewind($handle);
+            ftruncate($handle, 0);
+            if (fwrite($handle, $json) === false) {
+                return false;
+            }
+            fflush($handle);
+
+            $this->messages = $messages;
+
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /**
+     * IP ハッシュ用の鍵。
+     *
+     * 環境変数が無い場合はデータディレクトリに 1 度だけ生成して保存する。
+     * 固定文字列を鍵にすると、IP の総当たり（IPv4 は約 43 億通り）で
+     * ハッシュから元の IP を復元できてしまうため。
+     */
+    private static function ipHashKey(): string {
+        static $key = null;
+        if ($key !== null) {
+            return $key;
+        }
+
+        $fromEnv = getenv('GUESTBOOK_IP_HASH_KEY');
+        if (is_string($fromEnv) && $fromEnv !== '') {
+            return $key = $fromEnv;
+        }
+
+        $dataDir = getenv('GUESTBOOK_DATA_DIR') ?: dirname(__DIR__) . '/storage';
+        $keyFile = $dataDir . '/ip_hash.key';
+
+        if (is_readable($keyFile)) {
+            return $key = (string) file_get_contents($keyFile);
+        }
+
+        $key = bin2hex(random_bytes(32));
+        file_put_contents($keyFile, $key, LOCK_EX);
+        chmod($keyFile, 0600);
+
+        return $key;
     }
 
     public function getMessages(): array {
@@ -85,15 +174,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Invalid CSRF token.');
         }
 
-        $name = trim(filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING));
-        $message = trim(filter_input(INPUT_POST, 'message', FILTER_SANITIZE_STRING));
+        // FILTER_SANITIZE_STRING は PHP 8.1 で非推奨になった。
+        //
+        //     PHP Deprecated: Constant FILTER_SANITIZE_STRING is deprecated
+        //
+        // 挙動も直感的でなく、タグを削り引用符を実体参照に変えるため、
+        // 「入力を壊すが XSS は防げない」という中途半端な結果になる。
+        // 入力はそのまま保持し、出力時に htmlspecialchars() でエスケープする
+        // （このファイルの表示側は既にそうなっている）。
+        //
+        // filter_input() は値が無いと null を返す。PHP 8.1 以降
+        // trim(null) は Deprecated になるので (string) を挟む。
+        $name = trim((string) ($_POST['name'] ?? ''));
+        $message = trim((string) ($_POST['message'] ?? ''));
         
         $errors = validateInput($name, $message);
         
         if (empty($errors)) {
             if ($storage->saveMessage($name, $message)) {
                 $_SESSION['flash_message'] = 'Message posted successfully!';
-                header('Location: ' . htmlspecialchars($_SERVER['PHP_SELF']));
+
+                // リダイレクト先に $_SERVER['PHP_SELF'] を使わない。
+                // PHP_SELF には PATH_INFO が含まれるため、
+                //   /Sample.php/<攻撃者が決めた文字列>
+                // でアクセスされると、その文字列が Location に載る。
+                // htmlspecialchars() は HTML 用のエスケープであって
+                // URL には効かないので対策にもなっていない。
+                // 自分自身へ戻すだけなので固定文字列でよい。
+                header('Location: ' . basename(__FILE__), true, 303);
                 exit;
             } else {
                 throw new Exception('Failed to save message.');

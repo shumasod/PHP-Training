@@ -27,6 +27,28 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-Route::get('post/create', [PostController::class, 'create']);
-Route::post('post', [PostController::class, 'store'])->name('post.store');
+// 投稿
+//
+// 修正前は auth ミドルウェアが付いていなかった。
+//
+//     Route::get('post/create', [PostController::class, 'create']);
+//     Route::post('post', [PostController::class, 'store'])->name('post.store');
+//
+// PostController::store() は
+//
+//     $validated['user_id'] = auth()->id();
+//
+// としているが、未ログインだと auth()->id() は null を返す。
+// つまり誰でも投稿でき、user_id が null のレコードが作られる
+// （posts.user_id に NOT NULL 制約があれば SQLSTATE エラー、
+//   無ければ投稿者不明のレコードが残る）。
+//
+// また index() が定義されているのに一覧のルートが無く、
+// メソッドに到達できなかったので追加した。
+Route::middleware('auth')->group(function () {
+    Route::get('post', [PostController::class, 'index'])->name('post.index');
+    Route::get('post/create', [PostController::class, 'create'])->name('post.create');
+    Route::post('post', [PostController::class, 'store'])->name('post.store');
+});
+
 require __DIR__.'/auth.php';

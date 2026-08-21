@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Logger.php';
+
 // ====================================================================
 // 5. SessionManager クラス（セッション管理の改善）
 // ====================================================================
@@ -70,7 +72,7 @@ class SessionManager
             try {
                 return InputValidator::validateUserId($userId);
             } catch (Exception $e) {
-                log_message('error', 'Invalid user ID in session: ' . $e->getMessage());
+                Logger::error('Invalid user ID in session: ' . $e->getMessage());
                 $this->destroySession();
                 return null;
             }
@@ -99,11 +101,11 @@ class SessionManager
             $_SESSION['last_regenerated'] = $now;
             $_SESSION['fingerprint'] = $this->generateFingerprint();
 
-            log_message('info', "User {$validUserId} logged in successfully");
+            Logger::info("User {$validUserId} logged in successfully");
             return true;
             
         } catch (Exception $e) {
-            log_message('error', 'Failed to set user ID in session: ' . $e->getMessage());
+            Logger::error('Failed to set user ID in session: ' . $e->getMessage());
             return false;
         }
     }
@@ -120,13 +122,13 @@ class SessionManager
         // タイムアウトチェック
         $lastAccess = $_SESSION['last_access'] ?? 0;
         if (time() - $lastAccess > $this->sessionTimeout) {
-            log_message('info', 'Session timeout detected');
+            Logger::info('Session timeout detected');
             return false;
         }
         
         // セッションハイジャック対策
         if (!$this->validateSessionFingerprint()) {
-            log_message('warning', 'Session fingerprint validation failed');
+            Logger::warning('Session fingerprint validation failed');
             return false;
         }
         
@@ -215,7 +217,7 @@ class SessionManager
                 ]);
             }
 
-            log_message('info', 'Session destroyed successfully');
+            Logger::info('Session destroyed successfully');
         }
     }
 
