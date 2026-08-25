@@ -1,4 +1,31 @@
 <?php
+
+/**
+ * デバッグ出力用の HTML エスケープ。
+ */
+function debug_h(?string $value): string
+{
+    return htmlspecialchars($value ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+/**
+ * デバッグ出力から機微な値を伏せる。
+ */
+function debug_redact(array $values): array
+{
+    $sensitive = ['password', 'password_confirmation', 'current_password',
+                  'token', '_token', 'csrf', 'secret', 'api_key'];
+
+    foreach ($values as $key => $value) {
+        if (is_string($key) && in_array(strtolower($key), $sensitive, true)) {
+            $values[$key] = '[REDACTED]';
+        } elseif (is_array($value)) {
+            $values[$key] = debug_redact($value);
+        }
+    }
+
+    return $values;
+}
 // ==========================================
 // デバッグ関数のサンプル集
 // ファイル名: debug_functions.php
@@ -335,32 +362,42 @@ function debug_error_handling_and_http() {
     echo "<h3>HTTP & サーバー情報:</h3>";
     echo "<div style='background:#f0f8ff;padding:10px;border:1px solid #d0e0f0;'>";
     
-    echo "<strong>リクエストメソッド:</strong> " . $_SERVER['REQUEST_METHOD'] . "<br>";
-    echo "<strong>リクエストURI:</strong> " . $_SERVER['REQUEST_URI'] . "<br>";
-    echo "<strong>ユーザーエージェント:</strong> " . $_SERVER['HTTP_USER_AGENT'] . "<br>";
-    
+    // REQUEST_URI と HTTP_USER_AGENT はクライアントが自由に決められる。
+    // 修正前はこれらを未エスケープで出力していた。
+    //
+    //     curl -A '<script>alert(1)</script>' http://.../
+    //
+    // のような User-Agent を送られると、この関数を呼んでいるページで
+    // 反射型 XSS になる。print_r() も HTML エスケープをしないので同様。
+    //
+    // なおこの関数はファイル末尾で呼び出しがコメントアウトされているため、
+    // 現状は ?test=1 からは到達しない。コメントを外した時点で有効になる。
+    echo "<strong>リクエストメソッド:</strong> " . debug_h($_SERVER['REQUEST_METHOD'] ?? '') . "<br>";
+    echo "<strong>リクエストURI:</strong> " . debug_h($_SERVER['REQUEST_URI'] ?? '') . "<br>";
+    echo "<strong>ユーザーエージェント:</strong> " . debug_h($_SERVER['HTTP_USER_AGENT'] ?? '') . "<br>";
+
     // GETパラメータの表示
     if (!empty($_GET)) {
         echo "<strong>GETパラメータ:</strong><br>";
-        echo "<pre>";
-        print_r($_GET);
-        echo "</pre>";
+        echo "<pre>" . debug_h(print_r($_GET, true)) . "</pre>";
     }
-    
-    // POSTパラメータの表示（安全のために実際のアプリでは注意が必要）
+
+    // POSTパラメータの表示
+    // パスワードなどはそのまま出さない。
     if (!empty($_POST)) {
         echo "<strong>POSTパラメータ:</strong><br>";
-        echo "<pre>";
-        print_r($_POST);
-        echo "</pre>";
+        echo "<pre>" . debug_h(print_r(debug_redact($_POST), true)) . "</pre>";
     }
-    
-    // セッション情報（セッションが開始されている場合）
+
+    // セッション情報
+    //
+    // 修正前は print_r($_SESSION) で中身をそのまま出していた。
+    // セッションにはログイン中のユーザー ID、権限、CSRF トークンが入る。
+    // CSRF トークンが読めれば、そのユーザーとして任意の操作を仕掛けられる。
+    // キーだけを出して、値は出さない。
     if (session_status() === PHP_SESSION_ACTIVE) {
-        echo "<strong>セッション情報:</strong><br>";
-        echo "<pre>";
-        print_r($_SESSION);
-        echo "</pre>";
+        echo "<strong>セッションのキー:</strong><br>";
+        echo "<pre>" . debug_h(implode("\n", array_keys($_SESSION))) . "</pre>";
     }
     
     echo "</div>";
@@ -370,7 +407,15 @@ function debug_error_handling_and_http() {
 }
 
 // 実行例
-if (isset($_GET['test'])) {
+//
+// 修正前は isset($_GET['test']) だけで動いていた。
+// つまりこのファイルが公開ディレクトリに置かれていれば、
+// 誰でも ?test=1 を付けるだけでデバッグ出力を引き出せる。
+// バックトレースには絶対パスが、$_SESSION にはログイン状態や
+// CSRF トークンが含まれる。
+//
+// デモは CLI から直接実行したときだけ動かす。
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
     echo "<h2>var_dump()のテスト</h2>";
     debug_with_var_dump();
     
