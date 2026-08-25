@@ -52,13 +52,17 @@ function debug_with_error_log() {
     error_log($debug_info);
     
     // カスタムファイルに出力
-    error_log($debug_info, 3, 'debug.log');
+    // 相対パスだと実行ディレクトリ次第で公開ディレクトリに
+    // debug.log が作られ、ブラウザからダウンロードできてしまう。
+    error_log($debug_info, 3, sys_get_temp_dir() . '/debug.log');
 }
 
 // 4. バックトレース - 呼び出し元を追跡
 function show_backtrace() {
     echo "<pre>";
-    debug_print_backtrace();
+    // 引数には渡された値（パスワードやトークンを含みうる）が入るため、
+    // DEBUG_BACKTRACE_IGNORE_ARGS で除外する。
+    debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
     echo "</pre>";
 }
 
@@ -72,7 +76,10 @@ function call_function_b() {
 
 // 5. 条件付きデバッグ出力
 function conditional_debug($message, $level = 'INFO') {
-    $debug_enabled = true; // 本番環境では false に設定
+    // 本番で true のまま残らないよう、既定は無効にして環境変数で開ける。
+    // 修正前は true が直書きされており、コメントで「本番では false に」と
+    // 書いてあっても実際に切り替える仕組みが無かった。
+    $debug_enabled = getenv('APP_DEBUG') === '1';
     
     if ($debug_enabled) {
         $timestamp = date('Y-m-d H:i:s');
@@ -81,7 +88,15 @@ function conditional_debug($message, $level = 'INFO') {
 }
 
 // 実行例
-if (isset($_GET['test'])) {
+//
+// 修正前は isset($_GET['test']) だけで動いていた。
+// つまりこのファイルが公開ディレクトリに置かれていれば、
+// 誰でも ?test=1 を付けるだけでデバッグ出力を引き出せる。
+// バックトレースには絶対パスが、$_SESSION にはログイン状態や
+// CSRF トークンが含まれる。
+//
+// デモは CLI から直接実行したときだけ動かす。
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
     echo "<h2>var_dump()のテスト</h2>";
     debug_with_var_dump();
     
