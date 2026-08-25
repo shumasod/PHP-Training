@@ -1,6 +1,10 @@
 <?php
-require_once 'db.php';
-$config = require 'config.php';
+
+declare(strict_types=1);
+
+// 相対パスだと、どのディレクトリから実行したかで読み込み先が変わる。
+require_once __DIR__ . '/db.php';
+$config = require __DIR__ . '/config.php';
 
 $pdo = getPdoConnection();
 
@@ -9,32 +13,50 @@ $table = $config['table'];
 $columns = $config['columns'];
 $orderBy = $config['order_by'] ?? '';
 
-// セキュリティ: テーブル名とカラム名のバリデーション
-// SQLインジェクション対策として、英数字とアンダースコアのみを許可
-if (!preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
-    throw new InvalidArgumentException('Invalid table name');
-}
+// 識別子のクォート。
+//
+// 修正前はここで正規表現の検証だけを行い、SQL は
+//
+//     "SELECT ... FROM `$table`"
+//
+// とバッククォートで囲んでいた。バッククォートは MySQL の記法で、
+// db.php が接続していた PostgreSQL は受け付けない（SQL 標準は二重引用符）。
+// 設定どおりに動かすと必ず構文エラーになる状態だった。
+//
+// quoteIdent() が検証とドライバに応じたクォートをまとめて行う。
+$quotedTable = quoteIdent($table);
 
 $columnKeys = array_keys($columns);
-foreach ($columnKeys as $col) {
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $col)) {
-        throw new InvalidArgumentException('Invalid column name');
+$quotedColumns = array_map('quoteIdent', $columnKeys);
+
+// ORDER BY 句のバリデーション。
+//
+// カラム名と方向を分けて検証する。カラム名は quoteIdent() を通し、
+// 方向は ASC / DESC のどちらかに限定する。
+$orderByClause = '';
+if ($orderBy !== '') {
+    if (!preg_match('/\A([A-Za-z_][A-Za-z0-9_]*)(?:\s+(ASC|DESC))?\z/i', $orderBy, $m)) {
+        throw new InvalidArgumentException('Invalid order by clause');
+    }
+
+    $orderByClause = ' ORDER BY ' . quoteIdent($m[1]);
+    if (isset($m[2])) {
+        $orderByClause .= ' ' . strtoupper($m[2]);
     }
 }
 
-// ORDER BY句のバリデーション
-if ($orderBy && !preg_match('/^[a-zA-Z0-9_]+(\s+(ASC|DESC))?$/i', $orderBy)) {
-    throw new InvalidArgumentException('Invalid order by clause');
-}
+// SQL 生成（検証・クォート済みの識別子のみを使用）
+$sql = 'SELECT ' . implode(', ', $quotedColumns) . ' FROM ' . $quotedTable . $orderByClause;
 
-// SQL動的生成（バリデーション済みの値を使用）
-$sql = "SELECT " . implode(', ', $columnKeys) . " FROM `$table`";
-if ($orderBy) {
-    $sql .= " ORDER BY $orderBy";
+try {
+    $stmt = $pdo->query($sql);
+    $data = $stmt->fetchAll();
+} catch (PDOException $e) {
+    // 例外メッセージにはクエリ本文が含まれる。ログにのみ残す。
+    error_log('Query failed: ' . $e->getMessage());
+    http_response_code(500);
+    exit('データを取得できませんでした。');
 }
-
-$stmt = $pdo->query($sql);
-$data = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
