@@ -42,7 +42,14 @@
 </style>
 </head>
 <body>
- 	<form action="complete.php" method="post">
+ 	<!--
+ 	  修正前は action="complete.php" だったが、learn_1/ に complete.php は無い。
+ 	  実体はリポジトリ直下の "To do/complete.php" で、別ディレクトリにある。
+ 	  送信すると 404 になり、このフォームは一度も動かない状態だった。
+ 	  相対パスで実体を指す。ディレクトリ名に空白が含まれるため
+ 	  URL としては %20 へエンコードする。
+ 	-->
+ 	<form action="../To%20do/complete.php" method="post">
  		<h2>やることリスト 入力</h2>
 	 	<div class="input-area">
 		 	<p>タイトル</p>

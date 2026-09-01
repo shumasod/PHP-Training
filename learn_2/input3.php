@@ -64,7 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="container">
     <h2 class="mb-4">お問い合わせフォーム</h2>
-    <form action="process_form.php" method="post">
+    <!--
+      修正前は action="process_form.php" だったが、そのファイルは存在しない。
+      送信すると 404 になり、フォームは一度も動かない状態だった。
+      このファイル自身が冒頭で POST を処理している
+      (if ($_SERVER['REQUEST_METHOD'] === 'POST') { ... }) ので、
+      自分自身へ送る。
+    -->
+    <form action="<?php echo htmlspecialchars(basename(__FILE__), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" method="post">
         <div class="form-group">
             <label for="name">お名前:</label>
             <input type="text" class="form-control" id="name" name="name" required>
