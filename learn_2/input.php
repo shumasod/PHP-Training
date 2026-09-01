@@ -191,11 +191,17 @@ if (!empty($_POST['btn_submit'])) {
 
     <?php if ($pageFlag === 1 && verifyCsrfToken()) : ?>
         <form method="POST" action="input2.php">
-            <?php if (!empty($_SESSION)) : ?>
-                <pre>
-            <?php var_dump($_SESSION); ?>
-        </pre>
-            <?php endif; ?>
+            <?php
+            // 修正前はここで var_dump($_SESSION) を出していた。
+            //
+            // セッションには csrfToken が入っている。var_dump は HTML
+            // エスケープもしないので、そのまま画面に出ると
+            // ページを見た人・画面共有・スクリーンショットから
+            // トークンが読める。読めれば、そのユーザーとして
+            // 任意の操作を仕掛けられる。
+            //
+            // デバッグ用の出力なので削除する。
+            ?>
             <!-- ... フォームフィールド ... -->
         </form>
     <?php endif; ?>

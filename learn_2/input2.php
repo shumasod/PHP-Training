@@ -18,11 +18,14 @@ header('X-FRAME-OPTIONS:DENY');
 // スーパーグローバル変数　php 9種類
 // 連想配列
 
-if (!empty($_POST)) {
-    echo '<pre>';
-    var_dump($_POST);
-    echo '</pre>';
-}
+// 修正前はここで毎回 var_dump($_POST) を出していた。
+//
+// var_dump は HTML エスケープをしないため、
+//
+//     name=<script>alert(document.cookie)</script>
+//
+// を送るだけでスクリプトが動く（反射型 XSS）。
+// 送信内容の確認はブラウザの開発者ツールで足りるので削除する。
 
 function h(?string $str): string
 {
