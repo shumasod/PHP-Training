@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from ‘react’;
-import { Button } from ‘@/components/ui/button’;
-import { Card, CardContent, CardHeader, CardTitle } from ‘@/components/ui/card’;
-import { Slider } from ‘@/components/ui/slider’;
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 600;
@@ -13,11 +13,11 @@ const LAUNCH_COST = 10;
 const BOUNCINESS = 0.7;
 
 const POCKETS = [
-{ multiplier: 50, width: 80, color: ‘#3498db’ },
-{ multiplier: 100, width: 80, color: ‘#2ecc71’ },
-{ multiplier: 500, width: 80, color: ‘#f39c12’ },
-{ multiplier: 100, width: 80, color: ‘#2ecc71’ },
-{ multiplier: 50, width: 80, color: ‘#3498db’ }
+{ multiplier: 50, width: 80, color: '#3498db' },
+{ multiplier: 100, width: 80, color: '#2ecc71' },
+{ multiplier: 500, width: 80, color: '#f39c12' },
+{ multiplier: 100, width: 80, color: '#2ecc71' },
+{ multiplier: 50, width: 80, color: '#3498db' }
 ];
 
 class Ball {
@@ -35,7 +35,6 @@ this.score = 0;
 update() {
 if (this.landed) return;
 
-```
 this.x += this.dx;
 this.y += this.dy;
 this.dy += GRAVITY;
@@ -56,14 +55,12 @@ if (Math.abs(this.dy) > maxSpeed) this.dy = Math.sign(this.dy) * maxSpeed;
 
 // 摩擦
 this.dx *= 0.998;
-```
 
 }
 
 draw(ctx) {
 if (this.landed) return;
 
-```
 ctx.beginPath();
 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
 ctx.fillStyle = '#e74c3c';
@@ -72,7 +69,6 @@ ctx.strokeStyle = '#c0392b';
 ctx.lineWidth = 1;
 ctx.stroke();
 ctx.closePath();
-```
 
 }
 
@@ -97,7 +93,6 @@ const dx = this.x - pin.x;
 const dy = this.y - pin.y;
 const distance = Math.sqrt(dx * dx + dy * dy);
 
-```
 if (distance < this.radius + pin.radius) {
   // 衝突応答
   const angle = Math.atan2(dy, dx);
@@ -116,7 +111,6 @@ if (distance < this.radius + pin.radius) {
   this.dx += (Math.random() - 0.5) * 2;
   this.dy += (Math.random() - 0.5) * 1;
 }
-```
 
 }
 }
@@ -131,9 +125,9 @@ this.radius = PIN_RADIUS;
 draw(ctx) {
 ctx.beginPath();
 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-ctx.fillStyle = ‘#95a5a6’;
+ctx.fillStyle = '#95a5a6';
 ctx.fill();
-ctx.strokeStyle = ‘#7f8c8d’;
+ctx.strokeStyle = '#7f8c8d';
 ctx.lineWidth = 1;
 ctx.stroke();
 ctx.closePath();
@@ -161,7 +155,6 @@ const yPos = 100 + row * 40;
 const pinsInRow = row % 2 === 0 ? 8 : 7;
 const startX = row % 2 === 0 ? 50 : 75;
 
-```
   for (let col = 0; col < pinsInRow; col++) {
     const xPos = startX + col * 50;
     if (xPos > 0 && xPos < CANVAS_WIDTH) {
@@ -170,7 +163,6 @@ const startX = row % 2 === 0 ? 50 : 75;
   }
 }
 pinsRef.current = pins;
-```
 
 }, []);
 
@@ -179,7 +171,6 @@ const draw = useCallback((ctx) => {
 // 背景をクリア
 ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-```
 // 背景グラデーション
 const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
 gradient.addColorStop(0, '#1a1a2e');
@@ -225,7 +216,6 @@ ctx.arc(CANVAS_WIDTH / 2, 50, 8, 0, Math.PI * 2);
 ctx.fillStyle = '#e74c3c';
 ctx.fill();
 ctx.closePath();
-```
 
 }, []);
 
@@ -234,7 +224,6 @@ const gameLoop = useCallback(() => {
 const canvas = canvasRef.current;
 if (!canvas) return;
 
-```
 const ctx = canvas.getContext('2d');
 
 // ボールを更新
@@ -268,7 +257,6 @@ ballsRef.current = ballsRef.current.filter(ball => {
 
 draw(ctx);
 animationRef.current = requestAnimationFrame(gameLoop);
-```
 
 }, [credits, draw]);
 
@@ -276,18 +264,16 @@ animationRef.current = requestAnimationFrame(gameLoop);
 useEffect(() => {
 const canvas = canvasRef.current;
 if (canvas) {
-const ctx = canvas.getContext(‘2d’);
+const ctx = canvas.getContext('2d');
 draw(ctx);
 animationRef.current = requestAnimationFrame(gameLoop);
 }
 
-```
 return () => {
   if (animationRef.current) {
     cancelAnimationFrame(animationRef.current);
   }
 };
-```
 
 }, [gameLoop, draw]);
 
@@ -296,7 +282,6 @@ if (credits >= LAUNCH_COST && !isLaunching) {
 const newCredits = credits - LAUNCH_COST;
 setCredits(newCredits);
 
-```
   setIsLaunching(true);
   setBallsInPlay(prev => prev + 1);
   setLastScore(0);
@@ -312,7 +297,6 @@ setCredits(newCredits);
 
   setTimeout(() => setIsLaunching(false), 500);
 }
-```
 
 }, [credits, isLaunching, launchPower]);
 
@@ -352,7 +336,6 @@ return (
 )}
 </div>
 
-```
     <canvas 
       ref={canvasRef} 
       width={CANVAS_WIDTH} 
@@ -398,7 +381,6 @@ return (
     </div>
   </CardContent>
 </Card>
-```
 
 );
 };
