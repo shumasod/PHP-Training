@@ -32,6 +32,40 @@ function h(?string $str): string
     return htmlspecialchars($str ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * CSRF トークンを検証する。
+ *
+ * 修正前は次のように書かれていた。
+ *
+ *     if (verifyCsrfToken())
+ *
+ * この比較には 2 つの問題がある。
+ *
+ * 1. トークン検証を素通りできる
+ *    どちらのキーも未定義だと、PHP 8 では Warning が出たうえで
+ *    両辺とも null になり、null === null が true になる。
+ *    つまりセッションにトークンが無い状態で、csrf を一切含まない
+ *    POST を送ると検証を通過してしまう。
+ *
+ * 2. タイミング攻撃に対して安全でない
+ *    === は最初に異なるバイトが見つかった時点で false を返すため、
+ *    比較にかかる時間からトークンを 1 バイトずつ推測できる。
+ *    hash_equals() は長さに比例した一定時間で比較する。
+ */
+function verifyCsrfToken(): bool
+{
+    $sessionToken = $_SESSION['csrfToken'] ?? '';
+    $postedToken  = $_POST['csrf'] ?? '';
+
+    // 空同士が一致してしまわないよう、実在することを先に確認する。
+    if (!is_string($sessionToken) || $sessionToken === ''
+        || !is_string($postedToken) || $postedToken === '') {
+        return false;
+    }
+
+    return hash_equals($sessionToken, $postedToken);
+}
+
 // 入力、確認、完了　input.php, confirm.php, thanks.php
 // CSRF 偽物のinput.php→悪意のあるページ
 // input.php
@@ -76,35 +110,53 @@ if (!empty($_POST['btn_submit'])) {
 </head>
 
 <body>
+    <?php
+    // CSRF 検証に失敗したときに何も表示されない問題への対応。
+    //
+    // 修正前は if (verifyCsrfToken()) が偽のとき、その分岐の中身が
+    // まるごと出力されないだけだった。利用者からは真っ白なページに見え、
+    // 原因が分からないまま再送信を繰り返すことになる。
+    // （セッション切れでトークンが消えた場合に普通に起きる）
+    $csrfFailed = ($pageFlag === 1 || $pageFlag === 2) && !verifyCsrfToken();
+    ?>
+    <?php if ($csrfFailed) : ?>
+        <div class="container mt-5">
+            <div class="alert alert-danger" role="alert">
+                セッションの有効期限が切れたか、リクエストが正しくありません。
+                <a href="<?php echo h(basename(__FILE__)); ?>">最初からやり直してください。</a>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <?php if ($pageFlag === 1): ?>
-    <?php if ($_POST['csrf'] === $_SESSION['csrfToken']): ?>
+    <?php if (verifyCsrfToken()): ?>
     <form method="POST" action="input2.php">
         <div class="container">
             <div class="row">
                 <div class="col-mb-6">
                     <div class="form-group">
                         <label for="your_name">氏名</label>
-                        <?php echo h($_POST['your_name']); ?>
+                        <?php echo h($_POST['your_name'] ?? ''); ?>
                     </div>
 
                     <div class="form-group">
                         <label for="email">メールアドレス</label>
-                        <?php echo h($_POST['email']); ?>
+                        <?php echo h($_POST['email'] ?? ''); ?>
                     </div>
 
                     <div class="form-group">
                         <label for="url">ホームページ</label>
                         <input type="url" class="form-control" id="url"
-                            value="<?php echo h($_POST['url']); ?>">
+                            value="<?php echo h($_POST['url'] ?? ''); ?>">
                     </div>
 
                     <div class="form-group">
                         <label>性別</label>
                         <?php
-                        if ($_POST['gender'] === '0') {
+                        if (($_POST['gender'] ?? '') === '0') {
                             echo '男性';
                         }
-                        if ($_POST['gender'] === '1') {
+                        if (($_POST['gender'] ?? '') === '1') {
                             echo '女性';
                         }
                         ?>
@@ -112,24 +164,24 @@ if (!empty($_POST['btn_submit'])) {
 
                     <div class="form-group">
                         <label for="age">年齢</label>
-                        <?= $age_txt[$_POST['age']] ?>
+                        <?= $age_txt[$_POST['age'] ?? ''] ?? '' ?>
 
 
                     </div>
 
                     <div class="form-group">
                         <label for="contact">お問い合わせ内容</label>
-                        <?php echo h($_POST['contact']); ?>
+                        <?php echo h($_POST['contact'] ?? ''); ?>
                     </div>
 
                     <input type="submit" name="back" value="戻る">
                     <input type="submit" name="btn_submit" value="送信する">
-                    <input type="hidden" name="your_name" value="<?php echo h($_POST['your_name']); ?>">
-                    <input type="hidden" name="email" value="<?php echo h($_POST['email']); ?>">
-                    <input type="hidden" name="url" value="<?php echo h($_POST['url']); ?>">
-                    <input type="hidden" name="gender" value="<?php echo h($_POST['gender']); ?>">
-                    <input type="hidden" name="contact" value="<?php echo h($_POST['contact']); ?>">
-                    <input type="hidden" name="csrf" value="<?php echo h($_POST['csrf']); ?>">
+                    <input type="hidden" name="your_name" value="<?php echo h($_POST['your_name'] ?? ''); ?>">
+                    <input type="hidden" name="email" value="<?php echo h($_POST['email'] ?? ''); ?>">
+                    <input type="hidden" name="url" value="<?php echo h($_POST['url'] ?? ''); ?>">
+                    <input type="hidden" name="gender" value="<?php echo h($_POST['gender'] ?? ''); ?>">
+                    <input type="hidden" name="contact" value="<?php echo h($_POST['contact'] ?? ''); ?>">
+                    <input type="hidden" name="csrf" value="<?php echo h($_POST['csrf'] ?? ''); ?>">
                 </div>
             </div>
         </div>
@@ -139,7 +191,7 @@ if (!empty($_POST['btn_submit'])) {
     <?php endif; ?>
 
     <?php if ($pageFlag === 2): ?>
-        <?php if ($_POST['csrf'] === $_SESSION['csrfToken']): ?>
+        <?php if (verifyCsrfToken()): ?>
             送信が完了しました。
             <?php unset($_SESSION['csrfToken']); ?>
         <?php endif; ?>
@@ -169,31 +221,31 @@ if (!empty($_POST['btn_submit'])) {
                         <div class="form-group">
                             <label for="your_name">氏名</label>
                             <input type="text" class="form-control" id="your_name" name="your_name"
-                                value="<?php echo !empty($_POST['your_name']) ? h($_POST['your_name']) : ''; ?>" required>
+                                value="<?php echo !empty($_POST['your_name']) ? h($_POST['your_name'] ?? '') : ''; ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="email">メールアドレス</label>
                             <input type="email" class="form-control" id="email" name="email"
-                                value="<?php echo !empty($_POST['email']) ? h($_POST['email']) : ''; ?>" required>
+                                value="<?php echo !empty($_POST['email']) ? h($_POST['email'] ?? '') : ''; ?>" required>
                         </div>
 
                         <div class="form-group">
                             <label for="url">ホームページ</label>
                             <input type="url" class="form-control" id="url"
-                                value="<?php echo !empty($_POST['url']) ? h($_POST['url']) : ''; ?>">
+                                value="<?php echo !empty($_POST['url']) ? h($_POST['url'] ?? '') : ''; ?>">
                         </div>
 
                         <div class="form-group">
                             <label>性別</label>
                             <div class="form-check">
                                 <input type="radio" class="form-check-input" name="gender" id="gender1" value="0"
-                                    <?php echo (!empty($_POST['gender']) && $_POST['gender'] === '0') ? 'checked' : ''; ?>>
+                                    <?php echo (!empty($_POST['gender']) && ($_POST['gender'] ?? '') === '0') ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="gender1">男性</label>
                             </div>
                             <div class="form-check">
                                 <input type="radio" class="form-check-input" name="gender" id="gender2" value="1"
-                                    <?php echo (!empty($_POST['gender']) && $_POST['gender'] === '1') ? 'checked' : ''; ?>>
+                                    <?php echo (!empty($_POST['gender']) && ($_POST['gender'] ?? '') === '1') ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="gender2">女性</label>
                             </div>
                         </div>
@@ -203,22 +255,22 @@ if (!empty($_POST['btn_submit'])) {
     <select class="form-control" id="age" name="age">
         <option value="">選択してください。</option>
         <?php foreach ($age_txt as $key => $value) : ?>
-            <option value="<?=$key?>" <?php echo (!empty($_POST['age']) && $_POST['age'] === $key) ? 'selected' : ''; ?>><?= $value ?></option>
+            <option value="<?=$key?>" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === $key) ? 'selected' : ''; ?>><?= $value ?></option>
         <?php endforeach ?>
 
-        <!-- <option value="10" <?php echo (!empty($_POST['age']) && $_POST['age'] === '10') ? 'selected' : ''; ?>>10代</option>
-        <option value="20" <?php echo (!empty($_POST['age']) && $_POST['age'] === '20') ? 'selected' : ''; ?>>20代</option>
-        <option value="30" <?php echo (!empty($_POST['age']) && $_POST['age'] === '30') ? 'selected' : ''; ?>>30代</option>
-        <option value="40" <?php echo (!empty($_POST['age']) && $_POST['age'] === '40') ? 'selected' : ''; ?>>40代</option>
-        <option value="50" <?php echo (!empty($_POST['age']) && $_POST['age'] === '50') ? 'selected' : ''; ?>>50代</option>
-        <option value="60" <?php echo (!empty($_POST['age']) && $_POST['age'] === '60') ? 'selected' : ''; ?>>60代</option> -->
+        <!-- <option value="10" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '10') ? 'selected' : ''; ?>>10代</option>
+        <option value="20" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '20') ? 'selected' : ''; ?>>20代</option>
+        <option value="30" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '30') ? 'selected' : ''; ?>>30代</option>
+        <option value="40" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '40') ? 'selected' : ''; ?>>40代</option>
+        <option value="50" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '50') ? 'selected' : ''; ?>>50代</option>
+        <option value="60" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '60') ? 'selected' : ''; ?>>60代</option> -->
     </select>
 </div>
 
 
                         <div class="form-group">
                             <label for="contact">お問い合わせ内容</label>
-                            <textarea class="form-control" id="contact" rows="3" name="contact"><?php echo !empty($_POST['contact']) ? h($_POST['contact']) : ''; ?></textarea>
+                            <textarea class="form-control" id="contact" rows="3" name="contact"><?php echo !empty($_POST['contact']) ? h($_POST['contact'] ?? '') : ''; ?></textarea>
                         </div>
 
                         <div class="form-check">
