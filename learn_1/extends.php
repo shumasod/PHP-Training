@@ -1,5 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
+/**
+ * 継承 (extends) の練習。
+ *
+ * 抽象クラス (abstract) との違いは learn/abstract.php を参照。
+ * こちらの BaseProduct は単独でもインスタンス化できる通常のクラス。
+ */
+
 // 親クラス
 class BaseProduct {
     // 変数 関数
@@ -16,7 +25,10 @@ class BaseProduct {
 // 子クラス
 class Product extends BaseProduct {
 
-    // アクセス修飾子、private, protected(自分・継承したクラス), public
+    // アクセス修飾子
+    //   private   : 自分のクラスのみ
+    //   protected : 自分と、継承したクラス
+    //   public    : どこからでも
 
     // 変数
     private $product = '';
@@ -27,7 +39,8 @@ class Product extends BaseProduct {
     }
 
     public function getProduct() {
-        echo $this->product;
+        // 画面へ出す値は必ずエスケープする。
+        echo htmlspecialchars($this->product, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     public function addProduct($item) {
@@ -35,26 +48,29 @@ class Product extends BaseProduct {
     }
 
     public static function getStaticProduct($str) {
-        echo $str;
+        echo htmlspecialchars((string) $str, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
 
-$instance = new Product('テスト');
+// 使用例
+//
+// require しただけで実行されないよう、CLI から直接実行したときだけ動かす。
+// 修正前はファイルスコープに置かれていたため、クラスを使いたいだけの
+// include でも var_dump の出力が混ざっていた。
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
+    $instance = new Product('テスト');
 
-var_dump($instance);
+    $instance->getProduct();
+    echo PHP_EOL;
 
-$instance->getProduct();
-echo '<br>';
+    // 親クラスのメソッド
+    $instance->echoProduct();
+    echo PHP_EOL;
 
-// 親クラスのメソッド
-$instance->echoProduct();
-echo '<br>';
+    $instance->addProduct('追加分');
+    $instance->getProduct();
+    echo PHP_EOL;
 
-$instance->addProduct('追加分');
-echo '<br>';
-
-$instance->getProduct();
-echo '<br>';
-
-Product::getStaticProduct('静的');
-echo '<br>';
+    Product::getStaticProduct('静的');
+    echo PHP_EOL;
+}
