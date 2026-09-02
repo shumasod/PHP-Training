@@ -38,8 +38,17 @@ function validation(array $request): array
     // ホームページ URL（任意）
     $url = trim((string) ($request['url'] ?? ''));
     if ($url !== '') {
-        // FILTER_VALIDATE_URL は javascript:alert(1) のような URL も
-        // 「妥当な URL」として通してしまう。
+        // FILTER_VALIDATE_URL はスキームを検証しない。
+        //
+        // PHP 8.4 で実際に確かめた結果:
+        //
+        //     javascript:alert(1)                    弾く
+        //     javascript://example.com/%0Aalert(1)   通る  ← XSS として成立する
+        //     file:///etc/passwd                     通る
+        //     ftp://example.com/x                    通る
+        //
+        // "//" を含む形にすると javascript: でも通ってしまう
+        // (// が JavaScript のコメント、%0A が改行になり、その後が実行される)。
         // リンクとして出力する値なのでスキームまで確認する。
         $scheme = parse_url($url, PHP_URL_SCHEME);
         $isHttpUrl = filter_var($url, FILTER_VALIDATE_URL) !== false
