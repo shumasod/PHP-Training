@@ -1,0 +1,70 @@
+name: Frontend Build
+
+# JavaScript / TypeScript 側の「読み込めないファイル」を止める。
+#
+# PHP 側は php-lint.yml の php -l が構文エラーを拾うが、
+# .js / .tsx にはその網が無かった。実際に以下が長く残っていた。
+#
+#   Game/3D.tsx        全角引用符 24 箇所と Markdown のコードフェンス 18 行
+#   nww/vite.config.js 2 行目がコメントになっていない裸のメモ
+#
+# 文字種を grep で探す方法も試したが、
+# 「全角引用符が混入していた」と説明するコメント自体が引っかかるなど
+# 誤検出が避けられなかった。実際にビルドさせるのが確実で誤検出も無い。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: esbuild
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Parse every JS/TS file with esbuild
+        run: |
+          set -uo pipefail
+
+          status=0
+          count=0
+
+          while IFS= read -r -d '' file; do
+            count=$((count + 1))
+            if ! output=$(npx --yes esbuild@0.24.0 "$file" \
+                  --loader:.tsx=tsx --loader:.jsx=jsx \
+                  --loader:.ts=ts --loader:.js=js \
+                  --outfile=/dev/null 2>&1); then
+              echo "::error file=${file}::$(echo "$output" | grep -m1 '✘')"
+              echo "$output" | head -8
+              status=1
+            fi
+          done < <(
+            find . \
+              -path ./.git -prune -o \
+              -path ./node_modules -prune -o \
+              -path ./vendor -prune -o \
+              -type f \( -name '*.ts' -o -name '*.tsx' \
+                      -o -name '*.js' -o -name '*.jsx' \) -print0
+          )
+
+          echo "Checked ${count} JavaScript/TypeScript files."
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Some files could not be parsed."
+          else
+            echo "All files parsed successfully."
+          fi
+
+          exit "$status"
