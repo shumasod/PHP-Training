@@ -209,12 +209,61 @@ class UserController {
         $validatedData = [];
         
         // 名前のバリデーション
+        //
+        // 修正前はここで HTML エスケープしてから保存していた。
+        //
+        //     $validatedData['name'] = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
+        //
+        // $validatedData はそのまま $this->userModel->createUser() /
+        // updateUser() に渡されるので、データベースに入る値が
+        // HTML エスケープ済みになる。これで 3 つの問題が起きていた。
+        //
+        // (1) 長さの検査と保存される値が食い違う
+        //
+        //     mb_strlen() が見ているのは生の値だが、保存されるのは
+        //     エスケープ後の値。引用符は 1 文字が 6 文字 (&#039;) になる。
+        //
+        //       生の長さ          : 50 文字  <- mb_strlen で検査している値
+        //       エスケープ後の長さ: 300 文字  <- 実際に保存される値
+        //
+        //     「50文字以内」の検査を通った名前が、カラム定義を
+        //     6 倍まで超えうる。
+        //
+        // (2) 不正な UTF-8 で値が黙って消える
+        //
+        //     フラグを明示すると既定値から ENT_SUBSTITUTE が外れるため、
+        //     不正なバイト列を含む入力に対して空文字が返る。
+        //     empty() の検査は生の値に対して済んでいるので、
+        //     エラーにもならず空の名前が保存される。
+        //
+        //       不正な UTF-8 入り : empty(生)=false / 保存される値=''
+        //
+        // (3) そもそもエスケープする層が違う
+        //
+        //     HTML エスケープは「HTML として出力する瞬間」に行うもの。
+        //     保存時にかけると、O'Brien が O&#039;Brien として保存され、
+        //     ビュー側が正しくエスケープすれば二重エスケープになって
+        //     画面に &amp;#039; が出る。CSV 出力やメール送信など
+        //     HTML 以外の用途でも使えない値になる。
+        //
+        // 生の値を保存し、エスケープは出力側に任せる。
+        // このリポジトリの他の箇所 (learn_2 の h()、table.php や
+        // database.php の htmlspecialchars) も出力時にエスケープする
+        // 形になっており、それに揃えた。
+        //
+        // 注意: views ディレクトリはこのリポジトリに含まれていないため、
+        // ビューを書く側で必ずエスケープすること。
         if (empty($data['name'])) {
             $errors['name'] = '名前は必須です';
+        } elseif (!is_string($data['name'])) {
+            $errors['name'] = '名前の形式が正しくありません';
         } elseif (mb_strlen($data['name']) > 50) {
             $errors['name'] = '名前は50文字以内で入力してください';
+        } elseif (!mb_check_encoding($data['name'], 'UTF-8')) {
+            // 不正なバイト列は黙って落とさず、はっきり弾く。
+            $errors['name'] = '名前に使用できない文字が含まれています';
         } else {
-            $validatedData['name'] = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
+            $validatedData['name'] = $data['name'];
         }
         
         // メールアドレスのバリデーション
