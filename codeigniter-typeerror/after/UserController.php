@@ -9,6 +9,47 @@
  */
 class UserController extends CI_Controller
 {
+    /**
+     * JWT の署名検証に使う共通鍵 (HS256)。
+     *
+     * 修正前はこのプロパティが宣言されておらず、
+     * getIdFromJWT() が $this->jwtKey を参照していた。
+     *
+     *     $ grep -rn "jwtKey" --include=*.php . | grep -v vendor
+     *     ./codeigniter-typeerror/after/UserController.php:133: ... $this->jwtKey ...
+     *
+     * ヒットは 1 件、つまり代入は一度も無い。
+     * PHP 8 では未定義プロパティの参照は Warning を出して null を返すため、
+     * 署名鍵として null が JWT::decode() に渡されていた。
+     *
+     *     $ php -r 'class A { public function f() { return $this->jwtKey; } }
+     *               var_dump((new A)->f());'
+     *     PHP Warning:  Undefined property: A::$jwtKey
+     *     NULL
+     *
+     * 鍵をソースに書くわけにはいかないので、設定から読む。
+     * 読めなかった場合は「鍵無しで検証する」のではなく
+     * 検証そのものを失敗させる。空の鍵で通してしまうと、
+     * 誰でも自分で署名したトークンで他人になりすませる。
+     *
+     * @var string
+     */
+    private $jwtKey = '';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // CodeIgniter の設定、無ければ環境変数から読む。
+        // どちらにも無ければ空のまま残し、getIdFromJWT() 側で弾く。
+        $configured = $this->config->item('jwt_key');
+        if (!is_string($configured) || $configured === '') {
+            $configured = (string) getenv('JWT_KEY');
+        }
+
+        $this->jwtKey = is_string($configured) ? $configured : '';
+    }
+
     public function getUserOptions()
     {
         try {
@@ -127,7 +168,19 @@ class UserController extends CI_Controller
     {
         $token = $this->input->get_request_header('Authorization');
         if (!$token) return null;
-        
+
+        // 署名鍵が設定されていないなら、検証を試みずに失敗させる。
+        //
+        // 修正前は未定義プロパティ経由で null が渡っていた。
+        // 鍵が空のまま検証を通してしまう実装だと、
+        // 攻撃者が自分で署名したトークンを送るだけで
+        // 任意の user_id になりすませる。
+        // 「鍵が無いので検証できない」は「検証に失敗した」として扱う。
+        if ($this->jwtKey === '') {
+            log_message('error', 'JWT key is not configured; rejecting token.');
+            return null;
+        }
+
         try {
             // JWT処理のロジック（ライブラリに依存）
             $decoded = JWT::decode(str_replace('Bearer ', '', $token), $this->jwtKey, ['HS256']);
