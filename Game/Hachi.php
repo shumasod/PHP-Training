@@ -15,8 +15,37 @@ declare(strict_types=1);
  */
 
 // エラー報告の設定
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+//
+// 修正前はこの 2 行がファイルスコープで無条件に実行されていた。
+//
+//     error_reporting(E_ALL);
+//     ini_set('display_errors', '1');
+//
+// これらはプロセス全体の設定を書き換えるので、
+// このファイルを require した側の設定まで巻き込む。
+//
+//     $ php -r 'ini_set("display_errors", "0");
+//               printf("require 前: display_errors=%s error_reporting=%d\n",
+//                   ini_get("display_errors"), error_reporting());
+//               require "Game/Hachi.php";
+//               printf("require 後: display_errors=%s error_reporting=%d\n",
+//                   ini_get("display_errors"), error_reporting());'
+//     require 前: display_errors=0  error_reporting=22527
+//     require 後: display_errors=1  error_reporting=32767
+//
+// Web リクエストの途中でこれを読み込むと、そのリクエストでは
+// 以降すべての警告がブラウザに表示されるようになる。
+// 警告にはファイルの絶対パスが含まれるため、
+// サーバの構成を外から読めるようになってしまう。
+// Game/HachiTest.php もこのファイルを読み込む側にあたる。
+//
+// 読み込む側の設定を勝手に変えないよう、
+// このファイル自身が CLI から直接実行されたときに限定する。
+// (ゲーム本体の起動条件はファイル末尾の if と同じ考え方)
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === __FILE__) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+}
 
 /**
  * ゲームコマンドEnum
