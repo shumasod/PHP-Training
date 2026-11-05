@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../learn/validation.php';
+require_once __DIR__ . '/../learn/security_headers.php';
 
 
 // var_dump(EnumAge::teenth->value);
@@ -13,7 +14,12 @@ require_once __DIR__ . '/../learn/validation.php';
 //     var_dump($ages->label());
 // }
 
-header('X-FRAME-OPTIONS:DENY');
+// 修正前はここで X-FRAME-OPTIONS だけを送っていた。
+// CSP も X-Content-Type-Options も Referrer-Policy も無かったため、
+// 出力のどこか 1 箇所でもエスケープを忘れると
+// それだけでスクリプトが動く状態だった。
+// 詳細は learn/security_headers.php のコメントを参照。
+sendSecurityHeaders();
 
 // スーパーグローバル変数　php 9種類
 // 連想配列
