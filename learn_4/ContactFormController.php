@@ -104,7 +104,22 @@ class ContactFormController extends Controller
         // 他人の問い合わせ内容を読めた。
         Gate::authorize('manage-contacts');
 
-        $contact = ContactForm::find($id);
+        // find() ではなく findOrFail() を使う。
+        //
+        // find() は該当レコードが無いと null を返す。修正前は戻り値を
+        // 確かめずに後続へ渡していたため、存在しない ID を指定されると
+        //
+        //   - show():    CheckFormService::checkGender(null) に null が渡る
+        //   - edit():    ビューに null が渡り、$contact->name で致命的エラー
+        //   - update():  $contact->name = ... で
+        //                "Attempt to assign property on null"
+        //   - destroy(): $contact->delete() で
+        //                "Call to a member function delete() on null"
+        //
+        // となる。いずれも 500 になり、認可の失敗や「存在しない」を
+        // サーバ側の不具合として返してしまう。
+        // findOrFail() なら 404 になる。
+        $contact = ContactForm::findOrFail($id);
 
         $gender = CheckFormService::checkGender($contact);
         
@@ -124,7 +139,8 @@ class ContactFormController extends Controller
     {
         Gate::authorize('manage-contacts');
 
-        $contact = ContactForm::find($id);
+        // findOrFail にしている理由は show() のコメントを参照。
+        $contact = ContactForm::findOrFail($id);
 
         return view('contacts.edit', compact('contact'));
     }
@@ -140,14 +156,43 @@ class ContactFormController extends Controller
     {
         Gate::authorize('manage-contacts');
 
-        $contact = ContactForm::find($id);
-        $contact->name = $request->name;
-        $contact->title = $request->title;
-        $contact->email = $request->email;
-        $contact->url = $request->url;
-        $contact->gender = $request->gender;
-        $contact->age = $request->age;
-        $contact->contact = $request->contact;
+        // 更新時も入力を検証する。
+        //
+        // 修正前は素の Request から $request->name などを直接代入しており、
+        // 検証が一切無かった。store() は StoreContactRequest を通るので、
+        // 「作成はチェックされるが更新は何でも通る」状態だった。
+        //
+        // とくに url は、StoreContactRequest がわざわざ
+        //     'url' => ['nullable', 'url:http,https', 'max:255']
+        // とスキームを http/https に限定しているのに、
+        // update() 経由なら javascript: スキームをそのまま保存できた。
+        // 保存された値は画面にリンクとして出るため、
+        // 作成時の対策を素通りして保存型 XSS を仕込める経路になっていた。
+        //
+        // StoreContactRequest をそのまま使わない理由:
+        // あちらには 'caution' => ['required', 'accepted'] が含まれる。
+        // これは送信フォームの同意チェックボックスで、
+        // 管理者の編集画面には存在しない項目なので、更新では外す。
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:20'],
+            'title' => ['required', 'string', 'max:50'],
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'url' => ['nullable', 'url:http,https', 'max:255'],
+            'gender' => ['required', 'boolean'],
+            'age' => ['required', 'integer', 'between:1,6'],
+            'contact' => ['required', 'string', 'max:200'],
+        ]);
+
+        // findOrFail にしている理由は show() のコメントを参照。
+        $contact = ContactForm::findOrFail($id);
+
+        $contact->name = $validated['name'];
+        $contact->title = $validated['title'];
+        $contact->email = $validated['email'];
+        $contact->url = $validated['url'] ?? null;
+        $contact->gender = $validated['gender'];
+        $contact->age = $validated['age'];
+        $contact->contact = $validated['contact'];
         $contact->save();
 
         return to_route('contacts.index');
@@ -163,7 +208,8 @@ class ContactFormController extends Controller
     {
         Gate::authorize('manage-contacts');
 
-        $contact = ContactForm::find($id);
+        // findOrFail にしている理由は show() のコメントを参照。
+        $contact = ContactForm::findOrFail($id);
         $contact->delete();
 
         return to_route('contacts.index');
