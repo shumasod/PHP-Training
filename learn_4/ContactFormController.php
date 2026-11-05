@@ -7,6 +7,7 @@ use App\Models\ContactForm;
 use App\Services\CheckFormService;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Services\HogeService;
+use Illuminate\Support\Facades\Gate;
 
 class ContactFormController extends Controller
 {
@@ -25,6 +26,15 @@ class ContactFormController extends Controller
      */
     public function index(Request $request)
     {
+        // 残っている問題 (この PR では直していない)
+        //
+        // 一覧は全員の問い合わせの id / name / title / created_at を返す。
+        // show などと同じく、本来は管理者だけが見るべき情報である。
+        //
+        // ただし store() が完了後にここへリダイレクトしているため、
+        // 一般利用者を弾くと問い合わせ送信が 403 で終わってしまう。
+        // 直すには「送信完了画面を別に用意する」という画面遷移の変更が
+        // 必要で、認可の修正とは別の判断になるので分けてある。
         // $contacts = Contactform::select('id', 'name', 'title', 'created_at')
         // ->get();
 
@@ -87,6 +97,13 @@ class ContactFormController extends Controller
      */
     public function show($id)
     {
+        // 管理者だけが他人の問い合わせを見られる。
+        //
+        // 修正前はこのチェックが無く、ルートの middleware も ['auth']
+        // だけだったため、ログインしていれば URL の ID を差し替えるだけで
+        // 他人の問い合わせ内容を読めた。
+        Gate::authorize('manage-contacts');
+
         $contact = ContactForm::find($id);
 
         $gender = CheckFormService::checkGender($contact);
@@ -105,6 +122,8 @@ class ContactFormController extends Controller
      */
     public function edit($id)
     {
+        Gate::authorize('manage-contacts');
+
         $contact = ContactForm::find($id);
 
         return view('contacts.edit', compact('contact'));
@@ -119,6 +138,8 @@ class ContactFormController extends Controller
      */
     public function update(Request $request, $id)
     {
+        Gate::authorize('manage-contacts');
+
         $contact = ContactForm::find($id);
         $contact->name = $request->name;
         $contact->title = $request->title;
@@ -140,6 +161,8 @@ class ContactFormController extends Controller
      */
     public function destroy($id)
     {
+        Gate::authorize('manage-contacts');
+
         $contact = ContactForm::find($id);
         $contact->delete();
 

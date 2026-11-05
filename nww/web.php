@@ -23,13 +23,17 @@ use App\Http\Controllers\CustomerController;
 // お問い合わせ
 //
 // show / edit / update / destroy は ContactFormController の docblock 上
-// 「管理者用」とされているが、このグループの middleware は ['auth'] だけ。
-// ログインさえしていれば、ID を差し替えるだけで他人の問い合わせ内容
-// （氏名・メールアドレス・本文）を閲覧・編集・削除できる。
+// 「管理者用」とされているが、このグループの middleware は ['auth'] だけで、
+// ログインさえしていれば ID を差し替えるだけで他人の問い合わせ内容
+// （氏名・メールアドレス・本文）を閲覧・編集・削除できた。
 //
-// 管理者だけに絞るなら 'admin' ミドルウェアや Policy を足し、
-// 一般ユーザーにも自分の分だけ見せるなら
-// コントローラ側で所有者チェックを入れること。
+// 以前はこの注意書きを置くだけで実際の対処をしていなかったため、
+// ContactFormController 側に Gate::authorize('manage-contacts') を入れ、
+// 管理者限定にした (Gate の定義は learn_4/AuthServiceProvider.php)。
+//
+// contact_forms には所有者の列が無く、store() も user_id を記録しないので
+// 「自分の分だけ見せる」という絞り方は今の schema ではできない。
+// それをやるなら user_id 列の追加から必要になる。
 Route::group(['prefix' => 'contacts', 'middleware' => ['auth'], 'as' => 'contacts.'], function () {
     Route::get('/', [ContactFormController::class, 'index'])->name('index');
 
