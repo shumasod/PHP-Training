@@ -258,7 +258,29 @@ if (!empty($_POST['btn_submit'])) {
     <select class="form-control" id="age" name="age">
         <option value="">選択してください。</option>
         <?php foreach ($age_txt as $key => $value) : ?>
-            <option value="<?=$key?>" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === $key) ? 'selected' : ''; ?>><?= $value ?></option>
+            <?php
+                // $key を (string) で包んでいる理由。
+                //
+                // PHP の配列は「数値として解釈できる文字列キー」を
+                // 自動的に int へ変換する。$age_txt のキーは
+                // ソース上は '10' のような文字列リテラルだが、
+                // 取り出した時点では int になっている。
+                //
+                //     $a = ['10' => '~19歳'];
+                //     foreach ($a as $k => $v) { var_dump($k); }
+                //     int(10)
+                //
+                // $_POST の値は常に文字列なので、修正前の
+                //     ($_POST['age'] ?? '') === $key
+                // は string === int の比較になり、常に false だった。
+                // その結果、入力し直しや検証エラーで戻ってきたときに
+                // 選んだ年齢が毎回リセットされていた。
+                //
+                // 曖昧な == に緩めるのではなく、両辺を文字列に揃えて
+                // === のままにしておく。
+                $selectedAge = (string) ($_POST['age'] ?? '');
+            ?>
+            <option value="<?= h((string) $key) ?>" <?php echo ($selectedAge !== '' && $selectedAge === (string) $key) ? 'selected' : ''; ?>><?= h($value) ?></option>
         <?php endforeach ?>
 
         <!-- <option value="10" <?php echo (!empty($_POST['age']) && ($_POST['age'] ?? '') === '10') ? 'selected' : ''; ?>>10代</option>
