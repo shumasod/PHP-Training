@@ -132,7 +132,18 @@ if (!empty($_POST['btn_submit'])) {
 
                                     <div class="form-group">
                                         <label for="url">ホームページ</label>
-                                        <input type="url" class="form-control" id="url" value="<?php echo h($_POST['url'] ?? ''); ?>">
+                                        <?php
+                                            // 確認画面なので、他の項目と同じく読み取り専用の
+                                            // テキストとして表示する。
+                                            //
+                                            // 修正前はここだけ編集可能な <input> だった。
+                                            // しかも name 属性が無いので、利用者がこの欄を
+                                            // 書き換えても送信されず、すぐ下の
+                                            // <input type="hidden" name="url"> が持つ
+                                            // 元の値がそのまま送られていた。
+                                            // 「直せるように見えて直らない」入力欄だった。
+                                        ?>
+                                        <?php echo h($_POST['url'] ?? ''); ?>
                                     </div>
 
                                     <div class="form-group">
@@ -271,7 +282,21 @@ if (!empty($_POST['btn_submit'])) {
 
                         <div class="form-group">
                             <label for="url">ホームページ</label>
-                            <input type="url" class="form-control" id="url" value="<?php echo !empty($_SESSION['url']) ? h($_SESSION['url']) : ''; ?>">
+                            <?php
+                                // この入力欄には 2 つの不具合があった。
+                                //
+                                // 1. name 属性が無かった
+                                //    ブラウザは name を持つコントロールしか送信しないため、
+                                //    利用者が入力した URL は一切サーバに届かず、
+                                //    $_POST['url'] は常に未設定だった。
+                                //
+                                // 2. 復元元が $_SESSION['url'] だった
+                                //    このキーはリポジトリ内のどこにも代入されていない
+                                //    (読んでいるのはこの 1 行だけ)。
+                                //    同じフォームの他の項目はすべて $_POST から復元している。
+                                //    検証エラーで戻ってきたとき、URL だけが空に戻っていた。
+                            ?>
+                            <input type="url" class="form-control" id="url" name="url" value="<?php echo h($_POST['url'] ?? ''); ?>">
                         </div>
 
                         <div class="form-group">
