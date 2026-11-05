@@ -282,7 +282,23 @@ if (!empty($_POST['btn_submit'])) {
                         </div>
 
                         <input class="btn btn-info" type="submit" name="btn_confirm" value="確認する">
-                        <input type="hidden" name="csrf" value="<?php echo $token; ?>">
+                        <?php
+                            // $token も h() を通す。
+                            //
+                            // 現在の生成は bin2hex(random_bytes(32)) なので
+                            // 出てくるのは 16 進数の文字だけで、
+                            // エスケープしても結果は変わらない。
+                            // つまりこれは今ある穴を塞ぐ変更ではない。
+                            //
+                            // それでも通しておくのは、生成方法を
+                            // base64_encode() などに変えた瞬間に
+                            // + / = が混じり、属性値から抜け出せる形に
+                            // なってしまうため。
+                            // 「この値は安全だから素で出していい」という
+                            // 例外を 1 つ残すと、後から読む人が
+                            // 同じ書き方を他の値にも広げてしまう。
+                        ?>
+                        <input type="hidden" name="csrf" value="<?php echo h($token); ?>">
                     </form>
                 </div><!-- .col-mb-6 -->
             </div>
